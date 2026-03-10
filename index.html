@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ContaGestión PRO — Registros Contables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"/>
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f4f0;--bg2:#ffffff;--bg3:#eeece7;--bg4:#e5e2db;
+  --acc:#1a3a5c;--acc2:#c8963e;--acc3:#2d6a4f;--acc4:#c0392b;--acc5:#6d3fa0;
+  --txt:#1c1c2e;--txt2:#5a5a6e;--txt3:#9898a8;
+  --brd:#dedad2;--brd2:#ccc8be;
+  --r:10px;--r2:7px;
+  --ff:'Outfit',sans-serif;--fm:'JetBrains Mono',monospace;
+  --sh:0 2px 12px rgba(26,58,92,.07);--sh2:0 8px 32px rgba(26,58,92,.13);
+  --sw:260px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--ff);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+
+.shell{display:flex;height:100vh;overflow:hidden}
+.content{flex:1;overflow-y:auto}
+.module{padding:28px 32px;max-width:1500px;margin:0 auto;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--acc);display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:11px}
+.sb-logo{width:36px;height:36px;background:var(--acc2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:white;flex-shrink:0}
+.sb-name{font-size:14px;font-weight:700;color:white}
+.sb-sub{font-size:10px;color:rgba(255,255,255,.45);font-family:var(--fm)}
+.sb-nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.nav-sec{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:1.2px;padding:10px 10px 5px}
+.nav-item{width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r2);background:transparent;border:none;color:rgba(255,255,255,.6);font-family:var(--ff);font-size:13px;font-weight:500;cursor:pointer;transition:.14s;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.1);color:white}
+.nav-item.active{background:rgba(255,255,255,.17);color:white;font-weight:600}
+.nav-ic{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-lbl{flex:1}
+.nav-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--acc2);color:white}
+.sb-cliente{padding:10px 8px;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
+.cli-sel{width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--r2);padding:8px 12px;color:white;font-family:var(--ff);font-size:12px;outline:none;cursor:pointer}
+.cli-sel option{background:#1a3a5c;color:white}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--brd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--brd)}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-title{font-size:15px;font-weight:800;color:var(--acc)}
+.tb-cliente{font-size:13px;font-weight:600;color:var(--acc2);background:#fdf0e0;border-radius:20px;padding:4px 12px}
+.tb-right{display:flex;align-items:center;gap:10px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.ct{font-size:14px;font-weight:700;color:var(--acc)}
+
+/* STATS */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.sc{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:16px;border-left:4px solid var(--ac,var(--acc));box-shadow:var(--sh);transition:.16s}
+.sc:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.sl{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;font-weight:700}
+.sv{font-size:22px;font-weight:800;color:var(--acc)}
+.sd{font-size:11px;color:var(--txt2);margin-top:2px}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--brd);background:var(--bg3);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--brd);transition:background .1s}
+tbody tr:hover{background:var(--bg3)}
+tbody td{padding:10px 12px;vertical-align:middle}
+tbody tr:last-child{border-bottom:none}
+tfoot td{padding:10px 12px;font-weight:700;background:var(--bg3);border-top:2px solid var(--brd)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.bs{background:#d4edda;color:#155724}
+.bd{background:#f8d7da;color:#721c24}
+.bw{background:#fff3cd;color:#856404}
+.bi{background:#d1ecf1;color:#0c5460}
+.bm{background:var(--bg3);color:var(--txt2)}
+.bp{background:#e8d5f5;color:#5a2d82}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r2);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.16s;white-space:nowrap}
+.btn-p{background:var(--acc);color:white}
+.btn-p:hover{background:#0d2a45;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,92,.22)}
+.btn-g{background:transparent;color:var(--txt2);border:1.5px solid var(--brd2)}
+.btn-g:hover{background:var(--bg3);color:var(--txt);border-color:var(--acc)}
+.btn-gold{background:var(--acc2);color:white}
+.btn-gold:hover{background:#b8862e}
+.btn-green{background:var(--acc3);color:white}
+.btn-green:hover{background:#235a40}
+.btn-d{background:#fff0f0;color:var(--acc4);border:1px solid #ffd0d0}
+.btn-d:hover{background:#ffe0e0}
+.btn-s{padding:6px 12px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+
+/* FORMS */
+.fg{margin-bottom:13px}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.fi,.fsel,.fta{width:100%;background:var(--bg);border:1.5px solid var(--brd);border-radius:var(--r2);padding:8px 12px;color:var(--txt);font-family:var(--ff);font-size:13px;outline:none;transition:.16s}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(26,58,92,.07)}
+.fsel option{background:white}
+.fta{resize:vertical;min-height:60px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.span2{grid-column:span 2}
+.span3{grid-column:span 3}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fIn .16s ease}
+@keyframes fIn{from{opacity:0}to{opacity:1}}
+.modal{background:white;border-radius:14px;padding:26px;width:90%;max-width:560px;max-height:92vh;overflow-y:auto;animation:sUp .2s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--sh2)}
+.modal-lg{max-width:820px}
+.modal-xl{max-width:1100px}
+@keyframes sUp{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--brd)}
+.mt{font-size:17px;font-weight:800;color:var(--acc)}
+.mf{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd)}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.si{position:relative;flex:1;min-width:160px;max-width:280px}
+.sic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:14px;pointer-events:none}
+.sin{width:100%;background:var(--bg);border:1.5px solid var(--brd);border-radius:var(--r2);padding:8px 12px 8px 32px;color:var(--txt);font-family:var(--ff);font-size:13px;outline:none;transition:.16s}
+.sin:focus{border-color:var(--acc)}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+/* ASIENTO PARTIDA */
+.partida-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.partida-table th{background:var(--acc);color:white;padding:8px 12px;font-size:11px;text-align:left;font-weight:700;letter-spacing:.5px}
+.partida-table td{padding:6px 8px;border-bottom:1px solid var(--brd)}
+.partida-table tfoot td{background:var(--bg3);font-weight:700;font-size:13px;border-top:2px solid var(--brd)}
+.partida-row-debe{background:rgba(45,106,79,.04)}
+.partida-row-haber{background:rgba(192,57,43,.04)}
+
+/* CUENTA SELECTOR */
+.cuenta-group{font-weight:700;color:var(--acc);font-size:12px;background:var(--bg3)}
+.cuenta-opt{font-size:13px;padding-left:20px}
+
+/* TABS */
+.tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--brd)}
+.tab{padding:9px 18px;border:none;background:transparent;font-family:var(--ff);font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;transition:.13s;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--acc)}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* LIBRO DIARIO */
+.asiento-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:12px;overflow:hidden;transition:.16s}
+.asiento-card:hover{border-color:var(--acc);box-shadow:var(--sh)}
+.asiento-header{padding:12px 16px;background:var(--bg3);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.asiento-num{font-family:var(--fm);font-size:12px;font-weight:700;color:var(--acc);background:rgba(26,58,92,.08);padding:3px 10px;border-radius:20px}
+.asiento-glosa{font-size:13px;font-weight:600;flex:1;margin:0 14px}
+.asiento-fecha{font-size:12px;color:var(--txt2);font-family:var(--fm)}
+.asiento-body{padding:12px 16px;display:none}
+.asiento-body.open{display:block}
+
+/* LIBRO MAYOR */
+.cuenta-mayor{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.cm-header{background:var(--acc);color:white;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.cm-code{font-family:var(--fm);font-size:14px;font-weight:700}
+.cm-name{font-size:14px;font-weight:600;flex:1}
+.cm-saldo{font-family:var(--fm);font-size:14px;font-weight:700}
+
+/* BALANCE COMPROBACION */
+.bc-row-total{background:var(--acc);color:white;font-weight:800}
+.bc-row-total td{color:white!important}
+.bc-diff{color:var(--acc3);font-weight:700}
+.bc-diff.error{color:var(--acc4)}
+
+/* EMPTY */
+.empty{text-align:center;padding:44px 20px;color:var(--txt3)}
+.empty .ei{font-size:44px;margin-bottom:10px}
+
+/* NOTIF */
+.notifs{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.notif{background:white;border:1px solid var(--brd);border-radius:var(--r);padding:11px 16px;font-size:13px;display:flex;align-items:center;gap:9px;box-shadow:var(--sh2);animation:sUp .18s ease;min-width:240px;font-weight:500}
+.notif.ok{border-left:4px solid var(--acc3)}
+.notif.err{border-left:4px solid var(--acc4)}
+.notif.info{border-left:4px solid var(--acc)}
+
+/* IMPORTAR */
+.import-zone{border:2px dashed var(--brd2);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:.18s;background:var(--bg3)}
+.import-zone:hover,.import-zone.drag{border-color:var(--acc);background:#f0f4ff}
+.import-zone .iz-icon{font-size:36px;margin-bottom:8px}
+
+/* PDT PREVIEW */
+.pdt-box{background:linear-gradient(135deg,#1a3a5c,#0d2035);border-radius:var(--r);padding:20px;color:white;margin-bottom:16px}
+.pdt-title{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.pdt-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
+.pdt-row:last-child{border-bottom:none}
+.pdt-row.total{border-top:2px solid rgba(255,255,255,.3);margin-top:8px;padding-top:12px;font-size:16px;font-weight:800}
+.pdt-label{opacity:.8}
+.pdt-value{font-family:var(--fm);font-weight:700}
+.pdt-value.pos{color:#6ee7b7}
+.pdt-value.neg{color:#fca5a5}
+.pdt-value.neutral{color:white}
+
+@media(max-width:768px){
+  .g2,.g3{grid-template-columns:1fr}
+  .module{padding:14px 16px}
+  .fgrid,.fgrid3{grid-template-columns:1fr}
+  .span2,.span3{grid-column:1}
+}
+</style>
+</head>
+<body>
+
+<div class="shell" id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">⚖</div>
+      <div>
+        <div class="sb-name">ContaGestión</div>
+        <div class="sb-sub">Registros Contables</div>
+      </div>
+    </div>
+
+    <!-- SELECTOR DE CLIENTE -->
+    <div class="sb-cliente">
+      <label style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px">Cliente activo</label>
+      <select class="cli-sel" id="cliente-select" onchange="cambiarCliente(this.value)">
+        <option value="c1">Tech Solutions SAC</option>
+        <option value="c2">Comercial Flores EIRL</option>
+        <option value="c3">Servicios López SRL</option>
+        <option value="c4">Negocio Rápido - P. Quispe</option>
+      </select>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="nav-sec">LIBROS CONTABLES</div>
+      <button class="nav-item active" onclick="navTo('diario',this)"><span class="nav-ic">📔</span><span class="nav-lbl">Libro Diario</span></button>
+      <button class="nav-item" onclick="navTo('mayor',this)"><span class="nav-ic">📒</span><span class="nav-lbl">Libro Mayor</span></button>
+      <button class="nav-item" onclick="navTo('balance',this)"><span class="nav-ic">⚖</span><span class="nav-lbl">Balance Comprobación</span></button>
+      <div class="nav-sec">REGISTROS SUNAT</div>
+      <button class="nav-item" onclick="navTo('ventas',this)"><span class="nav-ic">📈</span><span class="nav-lbl">Registro de Ventas</span></button>
+      <button class="nav-item" onclick="navTo('compras',this)"><span class="nav-ic">📉</span><span class="nav-lbl">Registro de Compras</span></button>
+      <div class="nav-sec">TRIBUTARIO</div>
+      <button class="nav-item" onclick="navTo('pdt621',this)"><span class="nav-ic">🧮</span><span class="nav-lbl">PDT 621</span></button>
+      <div class="nav-sec">HERRAMIENTAS</div>
+      <button class="nav-item" onclick="navTo('importar',this)"><span class="nav-ic">⬆</span><span class="nav-lbl">Importar Excel</span></button>
+      <button class="nav-item" onclick="navTo('cuentas',this)"><span class="nav-ic">📋</span><span class="nav-lbl">Plan de Cuentas</span></button>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-title">Registros Contables</div>
+        <span style="color:var(--brd2)">›</span>
+        <div class="tb-cliente" id="tb-cliente-name">Tech Solutions SAC</div>
+        <span style="font-size:11px;color:var(--txt3)" id="tb-ruc">RUC: 20123456789</span>
+      </div>
+      <div class="tb-right">
+        <select class="fi" style="width:auto;padding:7px 12px;font-size:12px;background:var(--bg3)" id="periodo-sel" onchange="cambiarPeriodo(this.value)">
+          <option value="2026-03">Marzo 2026</option>
+          <option value="2026-02">Febrero 2026</option>
+          <option value="2026-01">Enero 2026</option>
+          <option value="2025-12">Diciembre 2025</option>
+        </select>
+        <button class="btn btn-green btn-s" onclick="exportarExcel()">⬇ Excel</button>
+        <button class="btn btn-gold btn-s" onclick="exportarTodo()">📦 Exportar Todo</button>
+      </div>
+    </div>
+    <main class="content" id="main-content"></main>
+  </div>
+</div>
+
+<div class="notifs" id="notifs"></div>
+<div id="modal-root"></div>
+
+<script>
+// ==========================================
+// PLAN DE CUENTAS PCGE (SIMPLIFICADO)
+// ==========================================
+const PCGE = {
+  '10': { nombre: 'EFECTIVO Y EQUIVALENTES DE EFECTIVO', tipo: 'A', naturaleza: 'D' },
+  '101': { nombre: 'Caja', tipo: 'A', naturaleza: 'D' },
+  '104': { nombre: 'Cuentas corrientes en instituciones financieras', tipo: 'A', naturaleza: 'D' },
+  '12': { nombre: 'CUENTAS POR COBRAR COMERCIALES - TERCEROS', tipo: 'A', naturaleza: 'D' },
+  '121': { nombre: 'Facturas, boletas y otros comprobantes por cobrar', tipo: 'A', naturaleza: 'D' },
+  '40': { nombre: 'TRIBUTOS, CONTRAPRESTACIONES Y APORTES AL SISTEMA', tipo: 'P', naturaleza: 'A' },
+  '401': { nombre: 'Gobierno central - IGV', tipo: 'P', naturaleza: 'A' },
+  '4011': { nombre: 'IGV - Cuenta propia', tipo: 'P', naturaleza: 'A' },
+  '4017': { nombre: 'Impuesto a la renta', tipo: 'P', naturaleza: 'A' },
+  '41': { nombre: 'REMUNERACIONES Y PARTICIPACIONES POR PAGAR', tipo: 'P', naturaleza: 'A' },
+  '411': { nombre: 'Remuneraciones por pagar', tipo: 'P', naturaleza: 'A' },
+  '42': { nombre: 'CUENTAS POR PAGAR COMERCIALES - TERCEROS', tipo: 'P', naturaleza: 'A' },
+  '421': { nombre: 'Facturas, boletas y otros comprobantes por pagar', tipo: 'P', naturaleza: 'A' },
+  '50': { nombre: 'CAPITAL', tipo: 'Pat', naturaleza: 'A' },
+  '501': { nombre: 'Capital social', tipo: 'Pat', naturaleza: 'A' },
+  '59': { nombre: 'RESULTADOS ACUMULADOS', tipo: 'Pat', naturaleza: 'A' },
+  '591': { nombre: 'Utilidades no distribuidas', tipo: 'Pat', naturaleza: 'A' },
+  '60': { nombre: 'COMPRAS', tipo: 'G', naturaleza: 'D' },
+  '601': { nombre: 'Mercaderías', tipo: 'G', naturaleza: 'D' },
+  '603': { nombre: 'Materiales auxiliares, suministros y repuestos', tipo: 'G', naturaleza: 'D' },
+  '61': { nombre: 'VARIACIÓN DE EXISTENCIAS', tipo: 'G', naturaleza: 'D' },
+  '62': { nombre: 'GASTOS DE PERSONAL, DIRECTORES Y GERENTES', tipo: 'G', naturaleza: 'D' },
+  '621': { nombre: 'Remuneraciones', tipo: 'G', naturaleza: 'D' },
+  '627': { nombre: 'Seguridad, previsión social y otras contribuciones', tipo: 'G', naturaleza: 'D' },
+  '63': { nombre: 'GASTOS DE SERVICIOS PRESTADOS POR TERCEROS', tipo: 'G', naturaleza: 'D' },
+  '631': { nombre: 'Transporte, correos y gastos de viaje', tipo: 'G', naturaleza: 'D' },
+  '632': { nombre: 'Asesoría y consultoría', tipo: 'G', naturaleza: 'D' },
+  '636': { nombre: 'Servicios básicos', tipo: 'G', naturaleza: 'D' },
+  '637': { nombre: 'Publicidad, publicaciones, relaciones públicas', tipo: 'G', naturaleza: 'D' },
+  '64': { nombre: 'GASTOS POR TRIBUTOS', tipo: 'G', naturaleza: 'D' },
+  '641': { nombre: 'Gobierno central', tipo: 'G', naturaleza: 'D' },
+  '65': { nombre: 'OTROS GASTOS DE GESTIÓN', tipo: 'G', naturaleza: 'D' },
+  '659': { nombre: 'Otros gastos de gestión', tipo: 'G', naturaleza: 'D' },
+  '68': { nombre: 'VALUACIÓN Y DETERIORO DE ACTIVOS Y PROVISIONES', tipo: 'G', naturaleza: 'D' },
+  '681': { nombre: 'Depreciación', tipo: 'G', naturaleza: 'D' },
+  '70': { nombre: 'VENTAS', tipo: 'I', naturaleza: 'A' },
+  '701': { nombre: 'Mercaderías', tipo: 'I', naturaleza: 'A' },
+  '704': { nombre: 'Prestación de servicios', tipo: 'I', naturaleza: 'A' },
+  '75': { nombre: 'OTROS INGRESOS DE GESTIÓN', tipo: 'I', naturaleza: 'A' },
+  '759': { nombre: 'Otros ingresos de gestión', tipo: 'I', naturaleza: 'A' },
+  '77': { nombre: 'INGRESOS FINANCIEROS', tipo: 'I', naturaleza: 'A' },
+  '771': { nombre: 'Ganancia por diferencia de cambio', tipo: 'I', naturaleza: 'A' },
+  '94': { nombre: 'GASTOS DE ADMINISTRACIÓN', tipo: 'G', naturaleza: 'D' },
+  '95': { nombre: 'GASTOS DE VENTAS', tipo: 'G', naturaleza: 'D' },
+  '79': { nombre: 'CARGAS IMPUTABLES A CUENTAS DE COSTOS Y GASTOS', tipo: 'G', naturaleza: 'A' },
+  '791': { nombre: 'Cargas imputables a cuentas de costos y gastos', tipo: 'G', naturaleza: 'A' },
+};
+
+// ==========================================
+// DATOS POR CLIENTE
+// ==========================================
+const CLIENTES_INFO = {
+  c1: { nombre: 'Tech Solutions SAC', ruc: '20123456789', regimen: 'RG' },
+  c2: { nombre: 'Comercial Flores EIRL', ruc: '20987654321', regimen: 'RMT' },
+  c3: { nombre: 'Servicios López SRL', ruc: '20456789123', regimen: 'RS' },
+  c4: { nombre: 'Negocio Rápido - P. Quispe', ruc: '10345678901', regimen: 'RUS' },
+};
+
+let clienteActivo = 'c1';
+let periodoActivo = '2026-03';
+
+// ASIENTOS DEMO
+const ASIENTOS_DEMO = {
+  c1: [
+    {
+      id:'A-001', fecha:'2026-03-02', numero:'001', glosa:'Registro de ventas - Factura F001-0125',
+      partidas:[
+        { cuenta:'121', nombre:'Fact. por cobrar', debe:6844.00, haber:0 },
+        { cuenta:'701', nombre:'Ventas - Servicios', debe:0, haber:5800.00 },
+        { cuenta:'4011', nombre:'IGV - Cuenta propia', debe:0, haber:1044.00 },
+      ]
+    },
+    {
+      id:'A-002', fecha:'2026-03-03', numero:'002', glosa:'Registro de compra de servicios - Rec001',
+      partidas:[
+        { cuenta:'632', nombre:'Asesoría y consultoría', debe:1200.00, haber:0 },
+        { cuenta:'4011', nombre:'IGV - Crédito fiscal', debe:216.00, haber:0 },
+        { cuenta:'421', nombre:'Fact. por pagar', debe:0, haber:1416.00 },
+      ]
+    },
+    {
+      id:'A-003', fecha:'2026-03-05', numero:'003', glosa:'Pago de planilla - Marzo 2026',
+      partidas:[
+        { cuenta:'621', nombre:'Remuneraciones', debe:18500.00, haber:0 },
+        { cuenta:'627', nombre:'Aport. seguridad social', debe:1665.00, haber:0 },
+        { cuenta:'411', nombre:'Remuneraciones por pagar', debe:0, haber:18500.00 },
+        { cuenta:'401', nombre:'ESSALUD por pagar', debe:0, haber:1665.00 },
+      ]
+    },
+    {
+      id:'A-004', fecha:'2026-03-07', numero:'004', glosa:'Cobro de factura F001-0123 - Tech Corp',
+      partidas:[
+        { cuenta:'104', nombre:'Cuenta corriente BCP', debe:6844.00, haber:0 },
+        { cuenta:'121', nombre:'Fact. por cobrar', debe:0, haber:6844.00 },
+      ]
+    },
+    {
+      id:'A-005', fecha:'2026-03-08', numero:'005', glosa:'Pago alquiler oficina - Marzo',
+      partidas:[
+        { cuenta:'636', nombre:'Servicios básicos / alquiler', debe:2500.00, haber:0 },
+        { cuenta:'4011', nombre:'IGV - Crédito fiscal', debe:450.00, haber:0 },
+        { cuenta:'104', nombre:'Cuenta corriente BCP', debe:0, haber:2950.00 },
+      ]
+    },
+  ],
+  c2: [
+    {
+      id:'A-001', fecha:'2026-03-01', numero:'001', glosa:'Apertura de periodo - Marzo 2026',
+      partidas:[
+        { cuenta:'104', nombre:'Cuenta corriente', debe:15000.00, haber:0 },
+        { cuenta:'501', nombre:'Capital social', debe:0, haber:15000.00 },
+      ]
+    },
+    {
+      id:'A-002', fecha:'2026-03-05', numero:'002', glosa:'Ventas del mes - Boleta B001-0234',
+      partidas:[
+        { cuenta:'101', nombre:'Caja', debe:3776.00, haber:0 },
+        { cuenta:'701', nombre:'Ventas - Mercaderías', debe:0, haber:3200.00 },
+        { cuenta:'4011', nombre:'IGV - Cuenta propia', debe:0, haber:576.00 },
+      ]
+    },
+  ],
+  c3: [], c4: [],
+};
+
+// VENTAS DEMO
+const VENTAS_DEMO = {
+  c1: [
+    { id:'V-001', fecha:'2026-03-02', tipoDoc:'01', serie:'F001', numero:'0125', rucCliente:'20112233445', cliente:'Tech Corp SAC', baseImponible:5800.00, igv:1044.00, total:6844.00, estado:'aceptado' },
+    { id:'V-002', fecha:'2026-03-05', tipoDoc:'01', serie:'F001', numero:'0126', rucCliente:'20998877665', cliente:'Retail Group', baseImponible:3200.00, igv:576.00, total:3776.00, estado:'aceptado' },
+    { id:'V-003', fecha:'2026-03-08', tipoDoc:'01', serie:'F001', numero:'0127', rucCliente:'20456789012', cliente:'Importadora XYZ', baseImponible:9500.00, igv:1710.00, total:11210.00, estado:'aceptado' },
+  ],
+  c2:[
+    { id:'V-001', fecha:'2026-03-05', tipoDoc:'03', serie:'B001', numero:'0234', rucCliente:'-', cliente:'Varios', baseImponible:3200.00, igv:576.00, total:3776.00, estado:'aceptado' },
+  ],
+  c3:[], c4:[]
+};
+
+// COMPRAS DEMO
+const COMPRAS_DEMO = {
+  c1: [
+    { id:'C-001', fecha:'2026-03-02', tipoDoc:'01', serie:'F001', numero:'001', rucProv:'20111222333', proveedor:'Alquiler Oficinas SAC', baseImponible:2500.00, igv:450.00, total:2950.00, usarCredito:true },
+    { id:'C-002', fecha:'2026-03-03', tipoDoc:'01', serie:'RH01', numero:'001', rucProv:'20444555666', proveedor:'Asesor Contable EIRL', baseImponible:1200.00, igv:216.00, total:1416.00, usarCredito:true },
+    { id:'C-003', fecha:'2026-03-04', tipoDoc:'01', serie:'F002', numero:'045', rucProv:'20777888999', proveedor:'AWS Perú SAC', baseImponible:850.00, igv:153.00, total:1003.00, usarCredito:true },
+  ],
+  c2:[
+    { id:'C-001', fecha:'2026-03-03', tipoDoc:'01', serie:'F001', numero:'089', rucProv:'20333444555', proveedor:'Distribuidora Lima', baseImponible:8000.00, igv:1440.00, total:9440.00, usarCredito:true },
+  ],
+  c3:[], c4:[]
+};
+
+// ==========================================
+// HELPERS
+// ==========================================
+const $  = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = n => new Intl.NumberFormat('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
+const fmtS = n => 'S/ ' + fmt(n);
+
+function notify(msg, type='ok') {
+  const d = document.createElement('div');
+  d.className = `notif ${type}`;
+  d.innerHTML = `<span>${type==='ok'?'✓':type==='err'?'✕':'ℹ'}</span> ${msg}`;
+  $('notifs').appendChild(d);
+  setTimeout(()=>d.remove(), 3500);
+}
+
+function closeModal() { $('modal-root').innerHTML = ''; }
+
+function getCuentaNombre(codigo) {
+  return PCGE[codigo]?.nombre || codigo;
+}
+
+function getAsientos() { return ASIENTOS_DEMO[clienteActivo] || []; }
+function getVentas() { return VENTAS_DEMO[clienteActivo] || []; }
+function getCompras() { return COMPRAS_DEMO[clienteActivo] || []; }
+
+// ==========================================
+// NAVEGACIÓN
+// ==========================================
+let currentModule = 'diario';
+function navTo(mod, btn) {
+  currentModule = mod;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderModule(mod);
+}
+
+function cambiarCliente(id) {
+  clienteActivo = id;
+  const c = CLIENTES_INFO[id];
+  $('tb-cliente-name').textContent = c.nombre;
+  $('tb-ruc').textContent = 'RUC: ' + c.ruc;
+  renderModule(currentModule);
+}
+
+function cambiarPeriodo(p) { periodoActivo = p; renderModule(currentModule); }
+
+function renderModule(mod) {
+  const renders = {
+    diario: renderDiario, mayor: renderMayor, balance: renderBalance,
+    ventas: renderVentas, compras: renderCompras, pdt621: renderPDT621,
+    importar: renderImportar, cuentas: renderCuentas,
+  };
+  const mc = $('main-content');
+  if(mc) mc.innerHTML = `<div class="module">${(renders[mod]||renderDiario)()}</div>`;
+  attachEvents();
+}
+
+// ==========================================
+// LIBRO DIARIO
+// ==========================================
+function renderDiario() {
+  const asientos = getAsientos();
+  const totalDebe = asientos.reduce((s,a)=>s+a.partidas.reduce((x,p)=>x+p.debe,0),0);
+  const totalHaber = asientos.reduce((s,a)=>s+a.partidas.reduce((x,p)=>x+p.haber,0),0);
+  const cuadra = Math.abs(totalDebe-totalHaber)<0.01;
+
+  const items = asientos.map(a => {
+    const tDebe = a.partidas.reduce((s,p)=>s+p.debe,0);
+    const tHaber = a.partidas.reduce((s,p)=>s+p.haber,0);
+    const filas = a.partidas.map(p=>`
+      <tr class="${p.debe>0?'partida-row-debe':'partida-row-haber'}">
+        <td style="font-family:var(--fm);font-size:12px;color:var(--acc)">${p.cuenta}</td>
+        <td>${esc(p.nombre)}</td>
+        <td style="text-align:right;font-family:var(--fm);color:${p.debe>0?'var(--acc3)':'var(--txt3)'}">${p.debe>0?fmtS(p.debe):'—'}</td>
+        <td style="text-align:right;font-family:var(--fm);color:${p.haber>0?'var(--acc4)':'var(--txt3)'}">${p.haber>0?fmtS(p.haber):'—'}</td>
+      </tr>`).join('');
+    return `
+    <div class="asiento-card" id="a-${a.id}">
+      <div class="asiento-header" onclick="toggleAsiento('${a.id}')">
+        <span class="asiento-num">${a.numero}</span>
+        <span class="asiento-glosa">${esc(a.glosa)}</span>
+        <span class="asiento-fecha">${a.fecha}</span>
+        <span style="margin-left:12px;font-size:12px;color:var(--acc3);font-family:var(--fm)">${fmtS(tDebe)}</span>
+        <span style="margin-left:8px;font-size:14px;color:var(--txt3)" id="ic-${a.id}">▼</span>
+        <div style="display:flex;gap:5px;margin-left:10px">
+          <button class="btn btn-s btn-g" onclick="event.stopPropagation();editAsiento('${a.id}')">✎</button>
+          <button class="btn btn-s btn-d" onclick="event.stopPropagation();delAsiento('${a.id}')">✕</button>
+        </div>
+      </div>
+      <div class="asiento-body" id="ab-${a.id}">
+        <table class="partida-table">
+          <thead><tr><th style="width:80px">Cuenta</th><th>Descripción</th><th style="text-align:right;width:140px">DEBE</th><th style="text-align:right;width:140px">HABER</th></tr></thead>
+          <tbody>${filas}</tbody>
+          <tfoot><tr>
+            <td colspan="2" style="text-align:right">TOTALES</td>
+            <td style="text-align:right;font-family:var(--fm);color:var(--acc3)">${fmtS(tDebe)}</td>
+            <td style="text-align:right;font-family:var(--fm);color:var(--acc4)">${fmtS(tHaber)}</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1 style="font-size:24px;font-weight:800;color:var(--acc)">📔 Libro Diario</h1><p style="color:var(--txt2);font-size:13px">${CLIENTES_INFO[clienteActivo].nombre} · ${periodoActivo}</p></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-p" onclick="openAsientoModal()">+ Nuevo Asiento</button>
+      <button class="btn btn-gold" onclick="generarAsientosAuto()">⚡ Auto desde Facturas</button>
+    </div>
+  </div></div>
+
+  <div class="sg" style="grid-template-columns:repeat(4,1fr)">
+    <div class="sc" style="--ac:var(--acc)"><div class="sl">ASIENTOS</div><div class="sv">${asientos.length}</div><div class="sd">en el período</div></div>
+    <div class="sc" style="--ac:var(--acc3)"><div class="sl">TOTAL DEBE</div><div class="sv" style="font-size:17px;color:var(--acc3)">${fmtS(totalDebe)}</div></div>
+    <div class="sc" style="--ac:var(--acc4)"><div class="sl">TOTAL HABER</div><div class="sv" style="font-size:17px;color:var(--acc4)">${fmtS(totalHaber)}</div></div>
+    <div class="sc" style="--ac:${cuadra?'var(--acc3)':'var(--acc4)'}"><div class="sl">PARTIDA</div><div class="sv" style="font-size:17px;color:${cuadra?'var(--acc3)':'var(--acc4)'}">${cuadra?'✓ CUADRA':'✕ NO CUADRA'}</div></div>
+  </div>
+
+  ${asientos.length ? items : '<div class="empty"><div class="ei">📔</div><p>No hay asientos contables en este período.<br/>Crea uno manualmente o usa "Auto desde Facturas".</p></div>'}`;
+}
+
+function toggleAsiento(id) {
+  const body = $(`ab-${id}`);
+  const ic = $(`ic-${id}`);
+  if(!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(ic) ic.textContent = isOpen ? '▼' : '▲';
+}
+
+function delAsiento(id) {
+  if(!confirm('¿Eliminar este asiento?')) return;
+  const arr = ASIENTOS_DEMO[clienteActivo];
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx>=0) arr.splice(idx,1);
+  notify('Asiento eliminado');
+  renderModule('diario');
+}
+
+function editAsiento(id) {
+  const a = getAsientos().find(x=>x.id===id);
+  if(a) openAsientoModal(a);
+}
+
+// ==========================================
+// MODAL NUEVO ASIENTO
+// ==========================================
+let partidas = [{ cuenta:'', debe:0, haber:0 }, { cuenta:'', debe:0, haber:0 }];
+
+function openAsientoModal(data=null) {
+  const isEdit = !!data;
+  partidas = data ? JSON.parse(JSON.stringify(data.partidas)) : [{ cuenta:'', debe:0, haber:0 },{ cuenta:'', debe:0, haber:0 }];
+  const d = data || { fecha: new Date().toISOString().split('T')[0], glosa:'', numero:'' };
+
+  const cuentasOptions = Object.entries(PCGE)
+    .filter(([k])=>k.length>=3)
+    .map(([k,v])=>`<option value="${k}">${k} — ${v.nombre}</option>`).join('');
+
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-xl">
+      <div class="mh"><span class="mt">${isEdit?'Editar':'Nuevo'} Asiento Contable</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <div class="fgrid3" style="margin-bottom:14px">
+        <div class="fg"><label class="fl">N° Asiento</label><input class="fi" id="as-num" value="${esc(d.numero)}" placeholder="001"/></div>
+        <div class="fg"><label class="fl">Fecha</label><input class="fi" id="as-fecha" type="date" value="${d.fecha}"/></div>
+        <div class="fg span3"><label class="fl">Glosa / Descripción</label><input class="fi" id="as-glosa" value="${esc(d.glosa)}" placeholder="Descripción del asiento contable"/></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Partidas contables</div>
+      <table class="partida-table" id="partidas-tbl">
+        <thead><tr><th style="width:220px">Cuenta PCGE</th><th>Descripción</th><th style="width:130px;text-align:right">DEBE (S/)</th><th style="width:130px;text-align:right">HABER (S/)</th><th style="width:40px"></th></tr></thead>
+        <tbody id="partidas-body"></tbody>
+        <tfoot><tr>
+          <td colspan="2" style="text-align:right;font-size:12px">TOTALES</td>
+          <td style="text-align:right;font-family:var(--fm);color:var(--acc3)" id="tot-debe">S/ 0.00</td>
+          <td style="text-align:right;font-family:var(--fm);color:var(--acc4)" id="tot-haber">S/ 0.00</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+      <button class="btn btn-g btn-s" style="margin-top:8px" onclick="addPartida()">+ Agregar línea</button>
+      <div id="as-error" style="display:none;color:var(--acc4);font-size:12px;font-weight:600;margin-top:8px">⚠ El asiento no cuadra. Debe = Haber.</div>
+
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveAsiento(${isEdit?`'${data.id}'`:'null'})">${isEdit?'Guardar cambios':'Registrar asiento'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  renderPartidasModal();
+}
+
+function renderPartidasModal() {
+  const body = $('partidas-body');
+  if(!body) return;
+  const cuentasOptions = Object.entries(PCGE).filter(([k])=>k.length>=3).map(([k,v])=>`<option value="${k}">${k} — ${v.nombre}</option>`).join('');
+
+  body.innerHTML = partidas.map((p,i)=>`
+    <tr>
+      <td><select class="fsel" style="font-size:12px;padding:5px 8px" onchange="updPartida(${i},'cuenta',this.value)">
+        <option value="">-- Cuenta --</option>${cuentasOptions.replace(`value="${p.cuenta}"`,`value="${p.cuenta}" selected`)}
+      </select></td>
+      <td style="font-size:12px;color:var(--txt2)">${p.cuenta ? PCGE[p.cuenta]?.nombre||'' : ''}</td>
+      <td><input type="number" class="fi" style="text-align:right;padding:5px 8px;font-family:var(--fm);font-size:12px" placeholder="0.00" value="${p.debe||''}" oninput="updPartida(${i},'debe',this.value)"/></td>
+      <td><input type="number" class="fi" style="text-align:right;padding:5px 8px;font-family:var(--fm);font-size:12px" placeholder="0.00" value="${p.haber||''}" oninput="updPartida(${i},'haber',this.value)"/></td>
+      <td><button class="btn btn-s btn-d" style="padding:4px 8px" onclick="removePartida(${i})">✕</button></td>
+    </tr>`).join('');
+  updTotales();
+}
+
+function updPartida(i, field, val) {
+  partidas[i][field] = field==='cuenta' ? val : parseFloat(val)||0;
+  if(field==='cuenta') renderPartidasModal();
+  else updTotales();
+}
+
+function addPartida() { partidas.push({cuenta:'',debe:0,haber:0}); renderPartidasModal(); }
+
+function removePartida(i) { partidas.splice(i,1); renderPartidasModal(); }
+
+function updTotales() {
+  const debe = partidas.reduce((s,p)=>s+p.debe,0);
+  const haber = partidas.reduce((s,p)=>s+p.haber,0);
+  const cuadra = Math.abs(debe-haber)<0.01;
+  const td = $('tot-debe'); const th = $('tot-haber');
+  const err = $('as-error');
+  if(td) td.textContent = fmtS(debe);
+  if(th) th.textContent = fmtS(haber);
+  if(err) err.style.display = cuadra||debe===0?'none':'block';
+}
+
+function saveAsiento(editId) {
+  const num = $('as-num')?.value.trim();
+  const glosa = $('as-glosa')?.value.trim();
+  const fecha = $('as-fecha')?.value;
+  if(!glosa||!fecha) { notify('Completa fecha y glosa','err'); return; }
+  const debe = partidas.reduce((s,p)=>s+p.debe,0);
+  const haber = partidas.reduce((s,p)=>s+p.haber,0);
+  if(Math.abs(debe-haber)>0.01) { notify('El asiento no cuadra. Debe = Haber','err'); return; }
+  if(partidas.filter(p=>p.cuenta).length<2) { notify('Mínimo 2 partidas con cuenta','err'); return; }
+
+  const arr = ASIENTOS_DEMO[clienteActivo];
+  if(editId) {
+    const idx = arr.findIndex(a=>a.id===editId);
+    if(idx>=0) arr[idx] = {...arr[idx], numero:num, glosa, fecha, partidas:[...partidas]};
+    notify('Asiento actualizado ✓');
+  } else {
+    const id = `A-${String(arr.length+1).padStart(3,'0')}`;
+    arr.unshift({ id, numero:num||String(arr.length+1).padStart(3,'0'), glosa, fecha, partidas:[...partidas] });
+    notify('Asiento registrado ✓');
+  }
+  closeModal();
+  renderModule('diario');
+}
+
+function generarAsientosAuto() {
+  const ventas = getVentas();
+  const compras = getCompras();
+  let generados = 0;
+  const arr = ASIENTOS_DEMO[clienteActivo];
+
+  ventas.forEach((v,i) => {
+    arr.push({
+      id: `A-AUTO-V${i}`, fecha: v.fecha,
+      numero: String(arr.length+1).padStart(3,'0'),
+      glosa: `VENTA AUTO: ${v.cliente} - ${v.serie}-${v.numero}`,
+      partidas: [
+        { cuenta:'121', nombre:'Fact. por cobrar', debe:v.total, haber:0 },
+        { cuenta:'704', nombre:'Prestación de servicios', debe:0, haber:v.baseImponible },
+        { cuenta:'4011', nombre:'IGV - Cuenta propia', debe:0, haber:v.igv },
+      ]
+    });
+    generados++;
+  });
+
+  compras.forEach((c,i) => {
+    arr.push({
+      id: `A-AUTO-C${i}`, fecha: c.fecha,
+      numero: String(arr.length+1).padStart(3,'0'),
+      glosa: `COMPRA AUTO: ${c.proveedor} - ${c.serie}-${c.numero}`,
+      partidas: [
+        { cuenta:'603', nombre:'Servicios / Gastos', debe:c.baseImponible, haber:0 },
+        { cuenta:'4011', nombre:'IGV - Crédito fiscal', debe:c.igv, haber:0 },
+        { cuenta:'421', nombre:'Fact. por pagar', debe:0, haber:c.total },
+      ]
+    });
+    generados++;
+  });
+
+  notify(`${generados} asientos generados automáticamente ✓`);
+  renderModule('diario');
+}
+
+// ==========================================
+// LIBRO MAYOR
+// ==========================================
+function renderMayor() {
+  const asientos = getAsientos();
+  const cuentasUsadas = {};
+  asientos.forEach(a => {
+    a.partidas.forEach(p => {
+      if(!p.cuenta) return;
+      if(!cuentasUsadas[p.cuenta]) cuentasUsadas[p.cuenta] = { debe:0, haber:0, movs:[] };
+      cuentasUsadas[p.cuenta].debe += p.debe;
+      cuentasUsadas[p.cuenta].haber += p.haber;
+      cuentasUsadas[p.cuenta].movs.push({ fecha:a.fecha, glosa:a.glosa, debe:p.debe, haber:p.haber });
+    });
+  });
+
+  const mayorCards = Object.entries(cuentasUsadas).sort((a,b)=>a[0].localeCompare(b[0])).map(([cod, data]) => {
+    const nombre = PCGE[cod]?.nombre || cod;
+    const naturaleza = PCGE[cod]?.naturaleza || 'D';
+    const saldo = naturaleza==='D' ? data.debe-data.haber : data.haber-data.debe;
+    const saldoLabel = saldo>=0 ? `S/ ${fmt(saldo)} DEUDOR` : `S/ ${fmt(Math.abs(saldo))} ACREEDOR`;
+    let saldoAcum = 0;
+    const filas = data.movs.map(m => {
+      saldoAcum += m.debe - m.haber;
+      return `<tr>
+        <td style="font-size:12px;color:var(--txt2)">${m.fecha}</td>
+        <td style="font-size:12px">${esc(m.glosa)}</td>
+        <td style="text-align:right;font-family:var(--fm);font-size:12px;color:var(--acc3)">${m.debe>0?fmtS(m.debe):'—'}</td>
+        <td style="text-align:right;font-family:var(--fm);font-size:12px;color:var(--acc4)">${m.haber>0?fmtS(m.haber):'—'}</td>
+        <td style="text-align:right;font-family:var(--fm);font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--acc3)':'var(--acc4)'}">${fmtS(Math.abs(saldoAcum))}</td>
+      </tr>`;
+    }).join('');
+    return `
+    <div class="cuenta-mayor">
+      <div class="cm-header">
+        <span class="cm-code">${cod}</span>
+        <span class="cm-name">${nombre}</span>
+        <span class="cm-saldo">${saldoLabel}</span>
+      </div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px">Fecha</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px">Concepto</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--acc3);text-transform:uppercase;letter-spacing:.8px">DEBE</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--acc4);text-transform:uppercase;letter-spacing:.8px">HABER</th>
+          <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px">SALDO</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot><tr style="background:var(--bg3);font-weight:700">
+          <td colspan="2" style="padding:8px 12px;text-align:right;font-size:12px">TOTALES</td>
+          <td style="padding:8px 12px;text-align:right;font-family:var(--fm);color:var(--acc3)">${fmtS(data.debe)}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:var(--fm);color:var(--acc4)">${fmtS(data.haber)}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:var(--fm);color:${saldo>=0?'var(--acc3)':'var(--acc4)'}">${saldoLabel}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><h1 style="font-size:24px;font-weight:800;color:var(--acc)">📒 Libro Mayor</h1><p style="color:var(--txt2);font-size:13px">${CLIENTES_INFO[clienteActivo].nombre} · ${periodoActivo} · ${Object.keys(cuentasUsadas).length} cuentas</p></div>
+  ${Object.keys(cuentasUsadas).length ? mayorCards : '<div class="empty"><div class="ei">📒</div><p>No hay movimientos. Primero registra asientos en el Libro Diario.</p></div>'}`;
+}
+
+// ==========================================
+// BALANCE DE COMPROBACIÓN
+// ==========================================
+function renderBalance() {
+  const asientos = getAsientos();
+  const cuentas = {};
+  asientos.forEach(a => {
+    a.partidas.forEach(p => {
+      if(!p.cuenta) return;
+      if(!cuentas[p.cuenta]) cuentas[p.cuenta] = { debe:0, haber:0 };
+      cuentas[p.cuenta].debe += p.debe;
+      cuentas[p.cuenta].haber += p.haber;
+    });
+  });
+
+  let totDebe=0, totHaber=0, totSaldoD=0, totSaldoH=0;
+  const filas = Object.entries(cuentas).sort((a,b)=>a[0].localeCompare(b[0])).map(([cod,d])=>{
+    const saldo = d.debe - d.haber;
+    const saldoD = saldo>=0 ? saldo : 0;
+    const saldoH = saldo<0 ? Math.abs(saldo) : 0;
+    totDebe+=d.debe; totHaber+=d.haber; totSaldoD+=saldoD; totSaldoH+=saldoH;
+    return `<tr>
+      <td style="font-family:var(--fm);font-size:12px;font-weight:700;color:var(--acc)">${cod}</td>
+      <td style="font-size:13px">${PCGE[cod]?.nombre||cod}</td>
+      <td style="text-align:right;font-family:var(--fm);color:var(--acc3)">${fmtS(d.debe)}</td>
+      <td style="text-align:right;font-family:var(--fm);color:var(--acc4)">${fmtS(d.haber)}</td>
+      <td style="text-align:right;font-family:var(--fm);color:var(--acc3)">${saldoD>0?fmtS(saldoD):'—'}</td>
+      <td style="text-align:right;font-family:var(--fm);color:var(--acc4)">${saldoH>0?fmtS(saldoH):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const cuadra = Math.abs(totDebe-totHaber)<0.01 && Math.abs(totSaldoD-totSaldoH)<0.01;
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1 style="font-size:24px;font-weight:800;color:var(--acc)">⚖ Balance de Comprobación</h1><p style="color:var(--txt2);font-size:13px">${CLIENTES_INFO[clienteActivo].nombre} · ${periodoActivo}</p></div>
+    <span class="badge ${cuadra?'bs':'bd'}" style="font-size:13px;padding:6px 16px">${cuadra?'✓ CUADRA':'✕ NO CUADRA'}</span>
+  </div></div>
+  <div class="card">
+    <div class="tw"><table>
+      <thead><tr>
+        <th style="width:70px">Cuenta</th><th>Nombre</th>
+        <th style="text-align:right;color:var(--acc3)">DEBE</th><th style="text-align:right;color:var(--acc4)">HABER</th>
+        <th style="text-align:right;color:var(--acc3)">SALDO DEUDOR</th><th style="text-align:right;color:var(--acc4)">SALDO ACREEDOR</th>
+      </tr></thead>
+      <tbody>${filas||'<tr><td colspan="6"><div class="empty"><div class="ei">⚖</div><p>Sin movimientos</p></div></td></tr>'}</tbody>
+      <tfoot>
+        <tr class="bc-row-total">
+          <td colspan="2" style="text-align:right;padding:10px 12px">TOTALES</td>
+          <td style="text-align:right;font-family:var(--fm);padding:10px 12px">${fmtS(totDebe)}</td>
+          <td style="text-align:right;font-family:var(--fm);padding:10px 12px">${fmtS(totHaber)}</td>
+          <td style="text-align:right;font-family:var(--fm);padding:10px 12px">${fmtS(totSaldoD)}</td>
+          <td style="text-align:right;font-family:var(--fm);padding:10px 12px">${fmtS(totSaldoH)}</td>
+        </tr>
+      </tfoot>
+    </table></div>
+  </div>`;
+}
+
+// ==========================================
+// REGISTRO DE VENTAS
+// ==========================================
+function renderVentas() {
+  const ventas = getVentas();
+  const totalBase = ventas.reduce((s,v)=>s+v.baseImponible,0);
+  const totalIGV = ventas.reduce((s,v)=>s+v.igv,0);
+  const totalTotal = ventas.reduce((s,v)=>s+v.total,0);
+
+  const rows = ventas.map(v=>`<tr>
+    <td style="font-family:var(--fm);font-size:12px;color:var(--acc)">${v.fecha}</td>
+    <td style="font-size:12px">${v.tipoDoc==='01'?'Factura':'Boleta'}</td>
+    <td style="font-family:var(--fm);font-size:12px">${v.serie}-${v.numero}</td>
+    <td style="font-family:var(--fm);font-size:12px">${v.rucCliente}</td>
+    <td style="font-size:13px;font-weight:500">${esc(v.cliente)}</td>
+    <td style="text-align:right;font-family:var(--fm);color:var(--acc3)">${fmtS(v.baseImponible)}</td>
+    <td style="text-align:right;font-family:var(--fm);color:var(--acc4)">${fmtS(v.igv)}</td>
+    <td style="text-align:right;font-family:var(--fm);font-weight:700">${fmtS(v.total)}</td>
+    <td><span class="badge bs">✓ ${v.estado}</span></td>
+    <td><button class="btn btn-s btn-d" onclick="delVenta('${v.id}')">✕</button></td>
+  </tr>`).join('');
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1 style="font-size:24px;font-weight:800;color:var(--acc)">📈 Registro de Ventas e Ingresos</h1><p style="color:var(--txt2);font-size:13px">${CLIENTES_INFO[clienteActivo].nombre} · ${periodoActivo} · Formato SUNAT</p></div>
+    <button class="btn btn-p" onclick="openVentaModal()">+ Nueva Venta</button>
+  </div></div>
+
+  <div class="sg" style="grid-template-columns:repeat(3,1fr)">
+    <div class="sc" style="--ac:var(--acc3)"><div class="sl">BASE IMPONIBLE</div><div class="sv" style="font-size:18px;color:var(--acc3)">${fmtS(totalBase)}</div></div>
+    <div class="sc" style="--ac:var(--acc4)"><div class="sl">IGV DÉBITO FISCAL</div><div class="sv" style="font-size:18px;color:var(--acc4)">${fmtS(totalIGV)}</div></div>
+    <div class="sc" style="--ac:var(--acc)"><div class="sl">TOTAL VENTAS</div><div class="sv" style="font-size:18px">${fmtS(totalTotal)}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="tw"><table>
+      <thead><tr><th>Fecha</th><th>Tipo Doc.</th><th>Serie-Número</th><th>RUC Cliente</th><th>Denominación</th><th style="text-align:right">Base Imponible</th><th style="text-align:right">IGV</th><th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="10"><div class="empty"><div class="ei">📈</div><p>Sin ventas registradas</p></div></td></tr>'}</tbody>
+      <tfoot><tr>
+        <td colspan="5" style="text-align:right;padding:10px 12px;font-weight:700">TOTALES</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;color:var(--acc3);padding:10px 12px">${fmtS(totalBase)}</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;color:var(--acc4);padding:10px 12px">${fmtS(totalIGV)}</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;padding:10px 12px">${fmtS(totalTotal)}</td>
+        <td colspan="2"></td>
+      </tr></tfoot>
+    </table></div>
+  </div>`;
+}
+
+function openVentaModal() {
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="mh"><span class="mt">Nueva Venta / Comprobante</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Fecha</label><input class="fi" id="v-fecha" type="date" value="${new Date().toISOString().split('T')[0]}"/></div>
+        <div class="fg"><label class="fl">Tipo Documento</label><select class="fsel" id="v-tipo"><option value="01">01 - Factura</option><option value="03">03 - Boleta</option><option value="07">07 - Nota Crédito</option><option value="08">08 - Nota Débito</option></select></div>
+        <div class="fg"><label class="fl">Serie</label><input class="fi" id="v-serie" placeholder="F001" value="F001"/></div>
+        <div class="fg"><label class="fl">Número</label><input class="fi" id="v-num" placeholder="0001"/></div>
+        <div class="fg"><label class="fl">RUC / DNI Cliente</label><input class="fi" id="v-ruc" placeholder="20123456789"/></div>
+        <div class="fg"><label class="fl">Razón Social / Nombre</label><input class="fi" id="v-cli" placeholder="Empresa SAC"/></div>
+        <div class="fg"><label class="fl">Base Imponible (S/)</label><input class="fi" id="v-base" type="number" placeholder="0.00" oninput="calcVenta()"/></div>
+        <div class="fg"><label class="fl">IGV 18% (auto)</label><input class="fi" id="v-igv" type="number" placeholder="0.00" readonly style="background:var(--bg3)"/></div>
+        <div class="fg span2"><label class="fl">Total (auto)</label><input class="fi" id="v-total" type="number" placeholder="0.00" readonly style="background:var(--bg3);font-weight:700"/></div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveVenta()">Registrar venta</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function calcVenta() {
+  const base = parseFloat($('v-base')?.value)||0;
+  const igv = base * 0.18;
+  if($('v-igv')) $('v-igv').value = fmt(igv);
+  if($('v-total')) $('v-total').value = fmt(base+igv);
+}
+
+function saveVenta() {
+  const base = parseFloat($('v-base')?.value)||0;
+  if(!base) { notify('Ingresa base imponible','err'); return; }
+  const v = {
+    id: `V-${String(getVentas().length+1).padStart(3,'0')}`,
+    fecha:$('v-fecha').value, tipoDoc:$('v-tipo').value,
+    serie:$('v-serie').value, numero:$('v-num').value,
+    rucCliente:$('v-ruc').value, cliente:$('v-cli').value,
+    baseImponible:base, igv:base*0.18, total:base*1.18, estado:'aceptado'
+  };
+  (VENTAS_DEMO[clienteActivo]||(VENTAS_DEMO[clienteActivo]=[])).unshift(v);
+  notify('Venta registrada ✓');
+  closeModal(); renderModule('ventas');
+}
+
+function delVenta(id) {
+  if(!confirm('¿Eliminar?')) return;
+  VENTAS_DEMO[clienteActivo] = getVentas().filter(v=>v.id!==id);
+  notify('Eliminado'); renderModule('ventas');
+}
+
+// ==========================================
+// REGISTRO DE COMPRAS
+// ==========================================
+function renderCompras() {
+  const compras = getCompras();
+  const totalBase = compras.reduce((s,c)=>s+c.baseImponible,0);
+  const totalIGV = compras.reduce((s,c)=>s+c.igv,0);
+  const totalTotal = compras.reduce((s,c)=>s+c.total,0);
+  const credito = compras.filter(c=>c.usarCredito).reduce((s,c)=>s+c.igv,0);
+
+  const rows = compras.map(c=>`<tr>
+    <td style="font-family:var(--fm);font-size:12px">${c.fecha}</td>
+    <td style="font-size:12px">Factura</td>
+    <td style="font-family:var(--fm);font-size:12px">${c.serie}-${c.numero}</td>
+    <td style="font-family:var(--fm);font-size:12px">${c.rucProv}</td>
+    <td style="font-size:13px;font-weight:500">${esc(c.proveedor)}</td>
+    <td style="text-align:right;font-family:var(--fm)">${fmtS(c.baseImponible)}</td>
+    <td style="text-align:right;font-family:var(--fm);color:var(--acc4)">${fmtS(c.igv)}</td>
+    <td style="text-align:right;font-family:var(--fm);font-weight:700">${fmtS(c.total)}</td>
+    <td style="text-align:center"><input type="checkbox" ${c.usarCredito?'checked':''} onchange="toggleCredito('${c.id}',this.checked)" style="width:16px;height:16px;cursor:pointer"/></td>
+    <td><button class="btn btn-s btn-d" onclick="delCompra('${c.id}')">✕</button></td>
+  </tr>`).join('');
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1 style="font-size:24px;font-weight:800;color:var(--acc)">📉 Registro de Compras</h1><p style="color:var(--txt2);font-size:13px">${CLIENTES_INFO[clienteActivo].nombre} · ${periodoActivo} · Formato SUNAT</p></div>
+    <button class="btn btn-p" onclick="openCompraModal()">+ Nueva Compra</button>
+  </div></div>
+
+  <div class="sg" style="grid-template-columns:repeat(4,1fr)">
+    <div class="sc" style="--ac:var(--acc)"><div class="sl">BASE IMPONIBLE</div><div class="sv" style="font-size:18px">${fmtS(totalBase)}</div></div>
+    <div class="sc" style="--ac:var(--acc4)"><div class="sl">IGV TOTAL</div><div class="sv" style="font-size:18px;color:var(--acc4)">${fmtS(totalIGV)}</div></div>
+    <div class="sc" style="--ac:var(--acc3)"><div class="sl">CRÉDITO FISCAL</div><div class="sv" style="font-size:18px;color:var(--acc3)">${fmtS(credito)}</div></div>
+    <div class="sc" style="--ac:var(--acc5)"><div class="sl">TOTAL COMPRAS</div><div class="sv" style="font-size:18px">${fmtS(totalTotal)}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="tw"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Serie-Nro.</th><th>RUC Prov.</th><th>Proveedor</th><th style="text-align:right">Base Imponible</th><th style="text-align:right">IGV</th><th style="text-align:right">Total</th><th style="text-align:center">Crédito Fiscal</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="10"><div class="empty"><div class="ei">📉</div><p>Sin compras registradas</p></div></td></tr>'}</tbody>
+      <tfoot><tr>
+        <td colspan="5" style="text-align:right;padding:10px 12px;font-weight:700">TOTALES</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;padding:10px 12px">${fmtS(totalBase)}</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;color:var(--acc4);padding:10px 12px">${fmtS(totalIGV)}</td>
+        <td style="text-align:right;font-family:var(--fm);font-weight:700;padding:10px 12px">${fmtS(totalTotal)}</td>
+        <td colspan="2"></td>
+      </tr></tfoot>
+    </table></div>
+  </div>`;
+}
+
+function toggleCredito(id, val) {
+  const c = getCompras().find(x=>x.id===id);
+  if(c) c.usarCredito=val;
+}
+
+function openCompraModal() {
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="mh"><span class="mt">Nueva Compra / Gasto</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">Fecha</label><input class="fi" id="c-fecha" type="date" value="${new Date().toISOString().split('T')[0]}"/></div>
+        <div class="fg"><label class="fl">Serie</label><input class="fi" id="c-serie" placeholder="F001"/></div>
+        <div class="fg"><label class="fl">Número</label><input class="fi" id="c-num" placeholder="0001"/></div>
+        <div class="fg"><label class="fl">RUC Proveedor</label><input class="fi" id="c-ruc" placeholder="20123456789"/></div>
+        <div class="fg span2"><label class="fl">Proveedor</label><input class="fi" id="c-prov" placeholder="Empresa Proveedora SAC"/></div>
+        <div class="fg"><label class="fl">Base Imponible (S/)</label><input class="fi" id="c-base" type="number" placeholder="0.00" oninput="calcCompra()"/></div>
+        <div class="fg"><label class="fl">IGV 18% (auto)</label><input class="fi" id="c-igv" type="number" readonly style="background:var(--bg3)"/></div>
+        <div class="fg span2"><label class="fl">Total (auto)</label><input class="fi" id="c-total" type="number" readonly style="background:var(--bg3);font-weight:700"/></div>
+        <div class="fg span2">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="c-credito" checked style="width:16px;height:16px"/>
+            <span class="fl" style="margin:0">Usar como crédito fiscal IGV</span>
+          </label>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveCompra()">Registrar compra</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function calcCompra() {
+  const base = parseFloat($('c-base')?.value)||0;
+  if($('c-igv')) $('c-igv').value = fmt(base*0.18);
+  if($('c-total')) $('c-total').value = fmt(base*1.18);
+}
+
+function saveCompra() {
+  const base = parseFloat($('c-base')?.value)||0;
+  if(!base) { notify('Ingresa base imponible','err'); return; }
+  const c = {
+    id:`C-${String(getCompras().length+1).padStart(3,'0')}`,
+    fecha:$('c-fecha').value, tipoDoc:'01',
+    serie:$('c-serie').value, numero:$('c-num').value,
+    rucProv:$('c-ruc').value, proveedor:$('c-prov').value,
+    baseImponible:base, igv:base*0.18, total:base*1.18,
+    usarCredito:$('c-credito')?.checked||false
+  };
+  (COMPRAS_DEMO[clienteActivo]||(COMPRAS_DEMO[clienteActivo]=[])).unshift(c);
+  notify('Compra registrada ✓'); closeModal(); renderModule('compras');
+}
+
+function delCompra(id) {
+  if(!confirm('¿Eliminar?')) return;
+  COMPRAS_DEMO[clienteActivo] = getCompras().filter(c=>c.id!==id);
+  notify('Eliminado'); renderModule('compras');
+}
+
+// ==========================================
+// PDT 621 AUTOMÁTICO
+// ==========================================
+function renderPDT621() {
+  const ventas = getVentas();
+  const compras = getCompras();
+  const c = CLIENTES_INFO[clienteActivo];
+
+  const baseVentas = ventas.reduce((s,v)=>s+v.baseImponible,0);
+  const igvVentas = ventas.reduce((s,v)=>s+v.igv,0);
+  const baseCompras = compras.reduce((s,x)=>s+x.baseImponible,0);
+  const igvCompras = compras.filter(x=>x.usarCredito).reduce((s,x)=>s+x.igv,0);
+  const igvPagar = Math.max(0, igvVentas - igvCompras);
+  const coef = c.regimen==='RG'?0.015:c.regimen==='RMT'?0.01:0;
+  const pagoCuenta = baseVentas * coef;
+  const totalPagar = igvPagar + pagoCuenta;
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><h1 style="font-size:24px;font-weight:800;color:var(--acc)">🧮 PDT 621 — Cálculo Automático</h1><p style="color:var(--txt2);font-size:13px">${c.nombre} · RUC: ${c.ruc} · Período: ${periodoActivo}</p></div>
+
+  <div class="g2" style="margin-bottom:20px">
+    <div class="pdt-box">
+      <div class="pdt-title">📊 IGV — Renta Mensual</div>
+      <div style="font-size:11px;opacity:.6;margin-bottom:14px;text-transform:uppercase;letter-spacing:.8px">SECCIÓN A — VENTAS</div>
+      <div class="pdt-row"><span class="pdt-label">Base imponible ventas</span><span class="pdt-value neutral">${fmtS(baseVentas)}</span></div>
+      <div class="pdt-row"><span class="pdt-label">IGV débito fiscal (18%)</span><span class="pdt-value neg">${fmtS(igvVentas)}</span></div>
+      <div style="font-size:11px;opacity:.6;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.8px">SECCIÓN B — COMPRAS</div>
+      <div class="pdt-row"><span class="pdt-label">Base imponible compras</span><span class="pdt-value neutral">${fmtS(baseCompras)}</span></div>
+      <div class="pdt-row"><span class="pdt-label">IGV crédito fiscal</span><span class="pdt-value pos">${fmtS(igvCompras)}</span></div>
+      <div style="font-size:11px;opacity:.6;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.8px">RESULTADO IGV</div>
+      <div class="pdt-row total"><span class="pdt-label">IGV A PAGAR</span><span class="pdt-value ${igvPagar>0?'neg':'pos'}">${fmtS(igvPagar)}</span></div>
+    </div>
+
+    <div class="pdt-box">
+      <div class="pdt-title">💰 Impuesto a la Renta</div>
+      <div class="pdt-row"><span class="pdt-label">Régimen tributario</span><span class="pdt-value neutral">${c.regimen} — ${regimeLabel(c.regimen)}</span></div>
+      <div class="pdt-row"><span class="pdt-label">Ingresos del período</span><span class="pdt-value neutral">${fmtS(baseVentas)}</span></div>
+      <div class="pdt-row"><span class="pdt-label">Coeficiente / %</span><span class="pdt-value neutral">${(coef*100).toFixed(1)}%</span></div>
+      <div class="pdt-row"><span class="pdt-label">Pago a cuenta mensual</span><span class="pdt-value neg">${fmtS(pagoCuenta)}</span></div>
+      <div style="margin-top:20px;padding:14px;background:rgba(255,255,255,.1);border-radius:8px">
+        <div style="font-size:12px;opacity:.7;margin-bottom:8px">RESUMEN TOTAL A PAGAR</div>
+        <div class="pdt-row"><span class="pdt-label">IGV a pagar</span><span class="pdt-value neg">${fmtS(igvPagar)}</span></div>
+        <div class="pdt-row"><span class="pdt-label">Pago a cuenta renta</span><span class="pdt-value neg">${fmtS(pagoCuenta)}</span></div>
+        <div class="pdt-row total"><span class="pdt-label">TOTAL SUNAT</span><span class="pdt-value neg">${fmtS(totalPagar)}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Detalle para ingresar al PDT 621</span><button class="btn btn-green btn-s" onclick="exportarPDT()">⬇ Exportar Excel</button></div>
+    <table><thead><tr><th>Campo PDT</th><th>Casilla</th><th>Valor</th><th>Fuente</th></tr></thead><tbody>
+      ${[
+        ['Base imponible ventas gravadas','100',fmtS(baseVentas),`${ventas.length} comprobantes`],
+        ['IGV de ventas (débito fiscal)','101',fmtS(igvVentas),'18% de base ventas'],
+        ['Base imponible compras gravadas','107',fmtS(baseCompras),`${compras.length} comprobantes`],
+        ['IGV de compras (crédito fiscal)','108',fmtS(igvCompras),`${compras.filter(x=>x.usarCredito).length} con crédito`],
+        ['IGV resultante a pagar','109',fmtS(igvPagar),'Débito - Crédito'],
+        ['Ingresos para pago a cuenta','301',fmtS(baseVentas),'Base de ventas'],
+        ['Coeficiente / Porcentaje','302',(coef*100).toFixed(1)+'%',c.regimen],
+        ['Pago a cuenta IR','303',fmtS(pagoCuenta),'Ingresos × Coef.'],
+        ['TOTAL A PAGAR','—',fmtS(totalPagar),'IGV + Renta'],
+      ].map(([campo,cas,val,fuente])=>`<tr>
+        <td style="font-weight:500">${campo}</td>
+        <td><span class="badge bi" style="font-family:var(--fm)">${cas}</span></td>
+        <td style="font-family:var(--fm);font-weight:700;color:var(--acc)">${val}</td>
+        <td style="font-size:12px;color:var(--txt2)">${fuente}</td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+function regimeLabel(r) {
+  return {RG:'Régimen General',RMT:'MYPE Tributario',RS:'Régimen Especial',RUS:'RUS'}[r]||r;
+}
+
+// ==========================================
+// IMPORTAR EXCEL
+// ==========================================
+function renderImportar() {
+  return `
+  <div class="ph" style="margin-bottom:20px"><h1 style="font-size:24px;font-weight:800;color:var(--acc)">⬆ Importar desde Excel</h1><p style="color:var(--txt2);font-size:13px">Importa asientos, ventas o compras desde archivos Excel</p></div>
+
+  <div class="g3" style="margin-bottom:20px">
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:10px">📔</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">Asientos Contables</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Importa el Libro Diario desde Excel con columnas: fecha, numero, glosa, cuenta, debe, haber</p>
+      <div class="import-zone" onclick="document.getElementById('imp-diario').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleImport(event,'diario')">
+        <input type="file" id="imp-diario" accept=".xlsx,.xls,.csv" style="display:none" onchange="processImport(this,'diario')"/>
+        <div class="iz-icon">📂</div>
+        <p><strong>Arrastrar o seleccionar</strong><br/>.xlsx / .csv</p>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:10px">📈</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">Registro de Ventas</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Importa ventas con columnas: fecha, serie, numero, ruc_cliente, cliente, base_imponible, igv, total</p>
+      <div class="import-zone" onclick="document.getElementById('imp-ventas').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleImport(event,'ventas')">
+        <input type="file" id="imp-ventas" accept=".xlsx,.xls,.csv" style="display:none" onchange="processImport(this,'ventas')"/>
+        <div class="iz-icon">📂</div>
+        <p><strong>Arrastrar o seleccionar</strong><br/>.xlsx / .csv</p>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:10px">📉</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">Registro de Compras</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Importa compras con columnas: fecha, serie, numero, ruc_proveedor, proveedor, base_imponible, igv, total</p>
+      <div class="import-zone" onclick="document.getElementById('imp-compras').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleImport(event,'compras')">
+        <input type="file" id="imp-compras" accept=".xlsx,.xls,.csv" style="display:none" onchange="processImport(this,'compras')"/>
+        <div class="iz-icon">📂</div>
+        <p><strong>Arrastrar o seleccionar</strong><br/>.xlsx / .csv</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Plantillas de importación</span></div>
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">Descarga las plantillas Excel con el formato correcto para importar tus datos:</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="descargarPlantilla('diario')">⬇ Plantilla Libro Diario</button>
+      <button class="btn btn-green" onclick="descargarPlantilla('ventas')">⬇ Plantilla Ventas</button>
+      <button class="btn btn-green" onclick="descargarPlantilla('compras')">⬇ Plantilla Compras</button>
+    </div>
+  </div>`;
+}
+
+function handleImport(event, tipo) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag');
+  const file = event.dataTransfer?.files[0];
+  if(file) processImportFile(file, tipo);
+}
+
+function processImport(input, tipo) {
+  if(input.files?.length) processImportFile(input.files[0], tipo);
+}
+
+function processImportFile(file, tipo) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      let count = 0;
+
+      if(tipo==='ventas') {
+        data.forEach(row => {
+          const v = { id:`V-IMP-${++count}`, fecha:row.fecha||row.Fecha||today(), tipoDoc:'01', serie:row.serie||'F001', numero:row.numero||'0001', rucCliente:row.ruc_cliente||'—', cliente:row.cliente||row.Cliente||'—', baseImponible:parseFloat(row.base_imponible||row.Base_Imponible||0), igv:parseFloat(row.igv||row.IGV||0), total:parseFloat(row.total||row.Total||0), estado:'aceptado' };
+          (VENTAS_DEMO[clienteActivo]||(VENTAS_DEMO[clienteActivo]=[])).push(v);
+        });
+        notify(`${data.length} ventas importadas ✓`);
+        renderModule('ventas');
+      } else if(tipo==='compras') {
+        data.forEach(row => {
+          const c = { id:`C-IMP-${++count}`, fecha:row.fecha||today(), tipoDoc:'01', serie:row.serie||'F001', numero:row.numero||'0001', rucProv:row.ruc_proveedor||'—', proveedor:row.proveedor||'—', baseImponible:parseFloat(row.base_imponible||0), igv:parseFloat(row.igv||0), total:parseFloat(row.total||0), usarCredito:true };
+          (COMPRAS_DEMO[clienteActivo]||(COMPRAS_DEMO[clienteActivo]=[])).push(c);
+        });
+        notify(`${data.length} compras importadas ✓`);
+        renderModule('compras');
+      } else {
+        notify(`${data.length} registros leídos del Excel ✓`);
+      }
+    } catch(err) { notify('Error leyendo archivo: '+err.message,'err'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function descargarPlantilla(tipo) {
+  const wb = XLSX.utils.book_new();
+  const templates = {
+    diario:[['fecha','numero','glosa','cuenta','debe','haber'],['2026-03-01','001','Descripción del asiento','101',1000,0],['2026-03-01','001','Descripción del asiento','421',0,1000]],
+    ventas:[['fecha','serie','numero','ruc_cliente','cliente','base_imponible','igv','total'],['2026-03-01','F001','0001','20123456789','Empresa SAC',1000,180,1180]],
+    compras:[['fecha','serie','numero','ruc_proveedor','proveedor','base_imponible','igv','total'],['2026-03-01','F001','0001','20987654321','Proveedor SAC',500,90,590]],
+  };
+  const ws = XLSX.utils.aoa_to_sheet(templates[tipo]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+  XLSX.writeFile(wb, `plantilla_${tipo}.xlsx`);
+  notify('Plantilla descargada ✓');
+}
+
+// ==========================================
+// PLAN DE CUENTAS
+// ==========================================
+function renderCuentas() {
+  const grupos = { A:'ACTIVO', P:'PASIVO', Pat:'PATRIMONIO', G:'GASTOS', I:'INGRESOS' };
+  const colores = { A:'var(--acc3)', P:'var(--acc4)', Pat:'var(--acc5)', G:'var(--acc2)', I:'var(--acc)' };
+
+  const porTipo = {};
+  Object.entries(PCGE).forEach(([cod,v])=>{ if(!porTipo[v.tipo]) porTipo[v.tipo]=[];  porTipo[v.tipo].push([cod,v]); });
+
+  const sections = Object.entries(grupos).map(([tipo,label])=>{
+    const cuentas = (porTipo[tipo]||[]).sort((a,b)=>a[0].localeCompare(b[0]));
+    const rows = cuentas.map(([cod,c])=>`
+      <tr>
+        <td style="font-family:var(--fm);font-size:12px;font-weight:700;color:${colores[tipo]}">${cod}</td>
+        <td style="font-size:${cod.length<=2?'13px':cod.length===3?'13px':'12px'};font-weight:${cod.length<=2?700:400};padding-left:${cod.length<=2?'12px':cod.length===3?'20px':'28px'}px">${c.nombre}</td>
+        <td><span class="badge bm" style="font-size:10px">${tipo==='A'?'Activo':tipo==='P'?'Pasivo':tipo==='Pat'?'Patrimonio':tipo==='G'?'Gasto':'Ingreso'}</span></td>
+        <td><span class="badge" style="font-size:10px;background:${c.naturaleza==='D'?'#d4edda':'#f8d7da'};color:${c.naturaleza==='D'?'#155724':'#721c24'}">${c.naturaleza==='D'?'DEUDORA':'ACREEDORA'}</span></td>
+      </tr>`).join('');
+    return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch"><span class="ct" style="color:${colores[tipo]}">${label}</span><span class="badge bm">${cuentas.length} cuentas</span></div>
+      <div class="tw"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Naturaleza</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ph" style="margin-bottom:20px"><h1 style="font-size:24px;font-weight:800;color:var(--acc)">📋 Plan de Cuentas PCGE</h1><p style="color:var(--txt2);font-size:13px">Plan Contable General Empresarial — ${Object.keys(PCGE).length} cuentas</p></div>
+  ${sections}`;
+}
+
+// ==========================================
+// EXPORTAR EXCEL
+// ==========================================
+function exportarExcel() {
+  const mod = currentModule;
+  const c = CLIENTES_INFO[clienteActivo];
+  const wb = XLSX.utils.book_new();
+
+  if(mod==='diario'||mod==='mayor'||mod==='balance') {
+    const asientos = getAsientos();
+    const rows = [['N° Asiento','Fecha','Glosa','Cuenta','Nombre Cuenta','Debe','Haber']];
+    asientos.forEach(a=>a.partidas.forEach(p=>rows.push([a.numero,a.fecha,a.glosa,p.cuenta,PCGE[p.cuenta]?.nombre||'',p.debe,p.haber])));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Libro Diario');
+  }
+  if(mod==='ventas') {
+    const rows = [['Fecha','Tipo','Serie','Número','RUC Cliente','Cliente','Base Imponible','IGV','Total','Estado']];
+    getVentas().forEach(v=>rows.push([v.fecha,v.tipoDoc,v.serie,v.numero,v.rucCliente,v.cliente,v.baseImponible,v.igv,v.total,v.estado]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Reg. Ventas');
+  }
+  if(mod==='compras') {
+    const rows = [['Fecha','Tipo','Serie','Número','RUC Proveedor','Proveedor','Base Imponible','IGV','Total','Crédito Fiscal']];
+    getCompras().forEach(x=>rows.push([x.fecha,x.tipoDoc,x.serie,x.numero,x.rucProv,x.proveedor,x.baseImponible,x.igv,x.total,x.usarCredito?'Sí':'No']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Reg. Compras');
+  }
+
+  XLSX.writeFile(wb, `${c.nombre}_${mod}_${periodoActivo}.xlsx`);
+  notify(`Excel exportado ✓`);
+}
+
+function exportarTodo() {
+  const c = CLIENTES_INFO[clienteActivo];
+  const wb = XLSX.utils.book_new();
+
+  // Diario
+  const asientos = getAsientos();
+  const rowsDiario = [['N° Asiento','Fecha','Glosa','Cuenta','Nombre Cuenta','Debe','Haber']];
+  asientos.forEach(a=>a.partidas.forEach(p=>rowsDiario.push([a.numero,a.fecha,a.glosa,p.cuenta,PCGE[p.cuenta]?.nombre||'',p.debe,p.haber])));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsDiario), 'Libro Diario');
+
+  // Mayor
+  const cuentas = {};
+  asientos.forEach(a=>a.partidas.forEach(p=>{
+    if(!cuentas[p.cuenta]) cuentas[p.cuenta]={debe:0,haber:0};
+    cuentas[p.cuenta].debe+=p.debe; cuentas[p.cuenta].haber+=p.haber;
+  }));
+  const rowsMayor = [['Cuenta','Nombre','Total Debe','Total Haber','Saldo Deudor','Saldo Acreedor']];
+  Object.entries(cuentas).forEach(([cod,d])=>{
+    const s=d.debe-d.haber;
+    rowsMayor.push([cod,PCGE[cod]?.nombre||cod,d.debe,d.haber,s>=0?s:0,s<0?Math.abs(s):0]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsMayor), 'Balance Comprobación');
+
+  // Ventas
+  const rowsV = [['Fecha','Tipo','Serie','Número','RUC Cliente','Cliente','Base Imponible','IGV','Total']];
+  getVentas().forEach(v=>rowsV.push([v.fecha,v.tipoDoc,v.serie,v.numero,v.rucCliente,v.cliente,v.baseImponible,v.igv,v.total]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsV), 'Reg. Ventas');
+
+  // Compras
+  const rowsC = [['Fecha','Tipo','Serie','Número','RUC Proveedor','Proveedor','Base Imponible','IGV','Total','Crédito']];
+  getCompras().forEach(x=>rowsC.push([x.fecha,x.tipoDoc,x.serie,x.numero,x.rucProv,x.proveedor,x.baseImponible,x.igv,x.total,x.usarCredito?'Sí':'No']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsC), 'Reg. Compras');
+
+  // PDT 621
+  const ventas=getVentas(), compras2=getCompras();
+  const bV=ventas.reduce((s,v)=>s+v.baseImponible,0), igvV=ventas.reduce((s,v)=>s+v.igv,0);
+  const igvC=compras2.filter(x=>x.usarCredito).reduce((s,x)=>s+x.igv,0);
+  const rowsPDT=[['Campo','Casilla','Valor'],['Base imponible ventas','100',bV],['IGV débito fiscal','101',igvV],['IGV crédito fiscal','108',igvC],['IGV a pagar','109',Math.max(0,igvV-igvC)],['Pago a cuenta renta','303',bV*0.015],['TOTAL A PAGAR','—',Math.max(0,igvV-igvC)+bV*0.015]];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsPDT), 'PDT 621');
+
+  XLSX.writeFile(wb, `${c.nombre}_Contabilidad_Completa_${periodoActivo}.xlsx`);
+  notify('Exportación completa: 5 hojas Excel ✓');
+}
+
+function exportarPDT() {
+  const c = CLIENTES_INFO[clienteActivo];
+  const ventas=getVentas(), compras=getCompras();
+  const bV=ventas.reduce((s,v)=>s+v.baseImponible,0), igvV=ventas.reduce((s,v)=>s+v.igv,0);
+  const bC=compras.reduce((s,x)=>s+x.baseImponible,0), igvC=compras.filter(x=>x.usarCredito).reduce((s,x)=>s+x.igv,0);
+  const igvP=Math.max(0,igvV-igvC), pagoCta=bV*0.015;
+  const rows=[
+    ['RESUMEN PDT 621 — '+c.nombre],['RUC',c.ruc],['Período',periodoActivo],[],
+    ['CAMPO','CASILLA','VALOR'],
+    ['Base imponible ventas gravadas','100',bV],['IGV de ventas','101',igvV],
+    ['Base imponible compras','107',bC],['IGV crédito fiscal','108',igvC],
+    ['IGV NETO A PAGAR','109',igvP],[],
+    ['Ingresos período','301',bV],['Coeficiente','302','1.5%'],['Pago a cuenta IR','303',pagoCta],[],
+    ['TOTAL A PAGAR SUNAT','—',igvP+pagoCta],
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'PDT 621');
+  XLSX.writeFile(wb, `PDT621_${c.ruc}_${periodoActivo}.xlsx`);
+  notify('PDT 621 exportado ✓');
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function attachEvents() {}
+
+// INIT
+renderModule('diario');
+</script>
+</body>
+</html>
