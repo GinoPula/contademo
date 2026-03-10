@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ContaGestión PRO — Sistema para Contadores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"/>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  // ============================================================
+  // 🔥 REEMPLAZA CON TU CONFIGURACIÓN DE FIREBASE
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT.firebaseapp.com",
+    projectId: "TU_PROJECT_ID",
+    storageBucket: "TU_PROJECT.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
+  // ============================================================
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+  const auth = getAuth(app);
+
+  // Exponer globalmente
+  window.FB = { db, storage, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, onSnapshot, ref, uploadBytes, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword };
+  window.FB_READY = true;
+  document.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<style>
+:root {
+  --bg: #f8f7f4;
+  --bg2: #ffffff;
+  --bg3: #f0ede8;
+  --bg4: #e8e4dd;
+  --acc: #1a3a5c;
+  --acc2: #c8963e;
+  --acc3: #2d6a4f;
+  --acc4: #c0392b;
+  --acc5: #7b4fa6;
+  --txt: #1a1a2e;
+  --txt2: #6b6b7b;
+  --txt3: #a8a8b8;
+  --brd: #e2ddd6;
+  --brd2: #d0c9bf;
+  --r: 10px;
+  --r2: 7px;
+  --ff: 'Outfit', sans-serif;
+  --fm: 'JetBrains Mono', monospace;
+  --sh: 0 2px 16px rgba(26,58,92,.08);
+  --sh2: 0 8px 32px rgba(26,58,92,.14);
+  --sw: 250px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: var(--ff); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--brd2); border-radius: 2px; }
+
+/* LOGIN */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a3a5c 0%, #0d2035 50%, #1a3a5c 100%);
+  position: relative;
+  overflow: hidden;
+}
+.login-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.login-card {
+  background: white;
+  border-radius: 16px;
+  padding: 44px 40px;
+  width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+  position: relative;
+  z-index: 1;
+}
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.login-logo-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--acc), #2d5f8a);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  color: white;
+}
+.login-logo-text { font-size: 20px; font-weight: 800; color: var(--acc); }
+.login-logo-sub { font-size: 12px; color: var(--txt2); }
+.login-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.login-sub { color: var(--txt2); font-size: 14px; margin-bottom: 28px; }
+.login-demo {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg3);
+  border-radius: var(--r2);
+  font-size: 12px;
+  color: var(--txt2);
+  text-align: center;
+}
+.login-demo strong { color: var(--acc); }
+
+/* SHELL */
+.shell { display: flex; height: 100vh; overflow: hidden; }
+.content { flex: 1; overflow-y: auto; background: var(--bg); }
+.module { padding: 28px 32px; max-width: 1440px; margin: 0 auto; animation: fadeUp .25s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* TOPBAR */
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--brd);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 0 var(--brd);
+}
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--acc); }
+.topbar-breadcrumb { font-size: 12px; color: var(--txt3); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border-radius: 20px;
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+}
+.user-dot { width: 8px; height: 8px; background: #2d6a4f; border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sw);
+  background: var(--acc);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sb-brand {
+  padding: 22px 18px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  display: flex; align-items: center; gap: 12px;
+}
+.sb-logo {
+  width: 38px; height: 38px;
+  background: var(--acc2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: white;
+}
+.sb-name { font-size: 15px; font-weight: 700; color: white; }
+.sb-sub { font-size: 10px; color: rgba(255,255,255,.5); font-family: var(--fm); }
+.sb-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-sec { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: 1.2px; padding: 10px 10px 6px; }
+.nav-item {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r2);
+  background: transparent; border: none;
+  color: rgba(255,255,255,.65);
+  font-family: var(--ff); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: .15s; text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,.1); color: white; }
+.nav-item.active { background: rgba(255,255,255,.18); color: white; font-weight: 600; }
+.nav-ic { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-lbl { flex: 1; }
+.nav-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: var(--acc2); color: white; }
+.sb-footer {
+  padding: 14px 10px;
+  border-top: 1px solid rgba(255,255,255,.1);
+}
+.sb-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.08);
+  border-radius: var(--r2);
+  margin-bottom: 8px;
+}
+.sb-avatar {
+  width: 32px; height: 32px;
+  background: var(--acc2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.sb-uname { font-size: 12px; font-weight: 600; color: white; }
+.sb-urole { font-size: 10px; color: rgba(255,255,255,.5); }
+.logout-btn {
+  width: 100%; padding: 8px 12px;
+  background: rgba(255,255,255,.08); border: none; border-radius: var(--r2);
+  color: rgba(255,255,255,.6); font-family: var(--ff); font-size: 12px;
+  cursor: pointer; transition: .15s; display: flex; align-items: center; gap: 6px;
+}
+.logout-btn:hover { background: rgba(255,77,77,.25); color: #ff6b6b; }
+
+/* PAGE HEADER */
+.ph { margin-bottom: 24px; }
+.ph-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.ph h1 { font-size: 26px; font-weight: 800; color: var(--acc); }
+.ph p { color: var(--txt2); margin-top: 3px; font-size: 13px; }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--brd); border-radius: var(--r); padding: 20px; box-shadow: var(--sh); }
+.ch { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.ct { font-size: 14px; font-weight: 700; color: var(--acc); }
+
+/* STATS */
+.sg { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-bottom: 22px; }
+.sc {
+  background: var(--bg2); border: 1px solid var(--brd);
+  border-radius: var(--r); padding: 18px;
+  border-left: 4px solid var(--ac, var(--acc));
+  box-shadow: var(--sh); transition: .18s;
+}
+.sc:hover { transform: translateY(-2px); box-shadow: var(--sh2); }
+.sl { font-size: 11px; color: var(--txt2); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; font-weight: 600; }
+.sv { font-size: 28px; font-weight: 800; color: var(--acc); }
+.sd { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+
+/* TABLE */
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--txt2); text-transform: uppercase; letter-spacing: .8px; border-bottom: 2px solid var(--brd); white-space: nowrap; background: var(--bg3); }
+tbody tr { border-bottom: 1px solid var(--brd); transition: background .1s; }
+tbody tr:hover { background: var(--bg3); }
+tbody td { padding: 12px 14px; }
+tbody tr:last-child { border-bottom: none; }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+.bs { background: #d4edda; color: #155724; }
+.bd { background: #f8d7da; color: #721c24; }
+.bw { background: #fff3cd; color: #856404; }
+.bi { background: #d1ecf1; color: #0c5460; }
+.bm { background: var(--bg3); color: var(--txt2); }
+.bp { background: #e8d5f5; color: #5a2d82; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--r2); font-family: var(--ff); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: .18s; white-space: nowrap; }
+.btn-p { background: var(--acc); color: white; }
+.btn-p:hover { background: #0d2a45; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,58,92,.25); }
+.btn-g { background: transparent; color: var(--txt2); border: 1.5px solid var(--brd2); }
+.btn-g:hover { background: var(--bg3); color: var(--txt); border-color: var(--acc); }
+.btn-gold { background: var(--acc2); color: white; }
+.btn-gold:hover { background: #b8862e; }
+.btn-d { background: #fff0f0; color: var(--acc4); border: 1px solid #ffd0d0; }
+.btn-d:hover { background: #ffe0e0; }
+.btn-s { padding: 6px 12px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none!important; }
+
+/* FORMS */
+.fg { margin-bottom: 14px; }
+.fl { display: block; font-size: 11px; font-weight: 700; color: var(--txt2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+.fi, .fsel, .fta { width: 100%; background: var(--bg); border: 1.5px solid var(--brd); border-radius: var(--r2); padding: 9px 13px; color: var(--txt); font-family: var(--ff); font-size: 13px; outline: none; transition: .18s; }
+.fi:focus, .fsel:focus, .fta:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(26,58,92,.08); }
+.fsel option { background: white; }
+.fta { resize: vertical; min-height: 70px; }
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.span2 { grid-column: span 2; }
+.span3 { grid-column: span 3; }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fIn .18s ease; }
+@keyframes fIn { from{opacity:0} to{opacity:1} }
+.modal { background: white; border-radius: 14px; padding: 28px; width: 90%; max-width: 580px; max-height: 90vh; overflow-y: auto; animation: sUp .22s cubic-bezier(.34,1.56,.64,1); box-shadow: var(--sh2); }
+.modal-lg { max-width: 760px; }
+.modal-xl { max-width: 960px; }
+@keyframes sUp { from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:none} }
+.mh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 2px solid var(--brd); }
+.mt { font-size: 18px; font-weight: 800; color: var(--acc); }
+.mf { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--brd); }
+
+/* TOOLBAR */
+.tb { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.si { position: relative; flex: 1; min-width: 180px; max-width: 300px; }
+.sic { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--txt3); font-size: 15px; pointer-events: none; }
+.sin { width: 100%; background: var(--bg); border: 1.5px solid var(--brd); border-radius: var(--r2); padding: 9px 13px 9px 34px; color: var(--txt); font-family: var(--ff); font-size: 13px; outline: none; transition: .18s; }
+.sin:focus { border-color: var(--acc); }
+
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+
+/* CLIENTE CARD */
+.cliente-card {
+  background: var(--bg2); border: 1.5px solid var(--brd);
+  border-radius: var(--r); padding: 18px;
+  cursor: pointer; transition: .18s;
+  position: relative; overflow: hidden;
+}
+.cliente-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+  background: var(--regime-color, var(--acc));
+}
+.cliente-card:hover { border-color: var(--acc); box-shadow: var(--sh2); transform: translateY(-2px); }
+.cc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.cc-name { font-size: 14px; font-weight: 700; color: var(--acc); }
+.cc-ruc { font-size: 12px; color: var(--txt2); font-family: var(--fm); margin-top: 2px; }
+.cc-body { display: flex; flex-direction: column; gap: 5px; }
+.cc-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--txt2); }
+.cc-icon { font-size: 13px; }
+.cc-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--brd); }
+.cc-decls { font-size: 11px; color: var(--txt2); }
+.cc-alert { font-size: 11px; font-weight: 700; }
+.cc-alert.ok { color: var(--acc3); }
+.cc-alert.warn { color: #856404; }
+.cc-alert.danger { color: var(--acc4); }
+
+/* DECLARACION ROW */
+.decl-row {
+  background: var(--bg2);
+  border: 1px solid var(--brd);
+  border-radius: var(--r2);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  align-items: center;
+  gap: 12px;
+  transition: .15s;
+  margin-bottom: 8px;
+}
+.decl-row:hover { border-color: var(--acc); background: #f8f9ff; }
+.decl-tipo { font-weight: 700; font-size: 13px; color: var(--acc); }
+.decl-periodo { font-family: var(--fm); font-size: 12px; color: var(--txt2); }
+
+/* CALENDARIO */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.cal-item {
+  background: var(--bg2);
+  border: 1.5px solid var(--brd);
+  border-radius: var(--r);
+  padding: 16px;
+  transition: .15s;
+}
+.cal-item.urgente { border-color: #ffd0d0; background: #fff8f8; }
+.cal-item.proximo { border-color: #fff0cc; background: #fffef8; }
+.cal-item.ok { border-color: #d4edda; background: #f8fff9; }
+.cal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.cal-titulo { font-weight: 700; font-size: 13px; color: var(--acc); }
+.cal-cliente { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+.cal-fecha { font-family: var(--fm); font-size: 11px; font-weight: 700; }
+.cal-fecha.urgente { color: var(--acc4); }
+.cal-fecha.proximo { color: #856404; }
+.cal-fecha.ok { color: var(--acc3); }
+.cal-dias { font-size: 11px; color: var(--txt2); margin-top: 2px; text-align: right; }
+
+/* PDF UPLOAD */
+.pdf-zone {
+  border: 2px dashed var(--brd2);
+  border-radius: var(--r);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: .18s;
+  background: var(--bg3);
+}
+.pdf-zone:hover, .pdf-zone.drag { border-color: var(--acc); background: #f0f4ff; }
+.pdf-zone .pz-icon { font-size: 36px; margin-bottom: 8px; }
+.pdf-zone p { font-size: 13px; color: var(--txt2); }
+.pdf-zone strong { color: var(--acc); }
+.pdf-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pdf-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--brd);
+  border-radius: var(--r2); padding: 10px 14px;
+}
+.pdf-item-icon { font-size: 20px; color: var(--acc4); }
+.pdf-item-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--acc); }
+.pdf-item-size { font-size: 11px; color: var(--txt3); font-family: var(--fm); }
+
+/* REGIMEN COLORS */
+.reg-RG { color: #1a3a5c; } .reg-RMT { color: #2d6a4f; } .reg-RS { color: #7b4fa6; } .reg-RUS { color: #c8963e; }
+.regbg-RG { background: #e8f0f8; } .regbg-RMT { background: #e8f5ee; } .regbg-RS { background: #f0e8f8; } .regbg-RUS { background: #fdf0e0; }
+
+/* EMPTY */
+.empty { text-align: center; padding: 48px 20px; color: var(--txt3); }
+.empty .ei { font-size: 48px; margin-bottom: 10px; }
+
+/* NOTIFICATIONS */
+.notifs { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.notif { background: white; border: 1px solid var(--brd); border-radius: var(--r); padding: 12px 18px; font-size: 13px; display: flex; align-items: center; gap: 10px; box-shadow: var(--sh2); animation: sUp .2s ease; min-width: 260px; font-weight: 500; }
+.notif.ok { border-left: 4px solid var(--acc3); }
+.notif.err { border-left: 4px solid var(--acc4); }
+.notif.info { border-left: 4px solid var(--acc); }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; padding: 48px; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--brd); border-top-color: var(--acc); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* DETAIL VIEW */
+.detail-header {
+  background: var(--acc);
+  border-radius: var(--r);
+  padding: 24px;
+  color: white;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dh-left { display: flex; align-items: center; gap: 16px; }
+.dh-avatar {
+  width: 52px; height: 52px;
+  background: rgba(255,255,255,.2);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800;
+}
+.dh-name { font-size: 20px; font-weight: 800; }
+.dh-ruc { font-size: 13px; opacity: .75; font-family: var(--fm); margin-top: 2px; }
+.dh-badges { display: flex; gap: 8px; margin-top: 6px; }
+
+/* TABS */
+.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--brd); }
+.tab { padding: 10px 20px; border: none; background: transparent; font-family: var(--ff); font-size: 13px; font-weight: 600; color: var(--txt2); cursor: pointer; transition: .15s; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab:hover { color: var(--acc); }
+.tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+
+/* FIREBASE CONFIG NOTICE */
+.fb-config-notice {
+  background: #fff8e1;
+  border: 2px solid #ffc107;
+  border-radius: var(--r);
+  padding: 20px 24px;
+  margin: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+@media(max-width:768px) {
+  .g2,.g3,.g4 { grid-template-columns: 1fr; }
+  .module { padding: 14px 16px; }
+  .fgrid { grid-template-columns: 1fr; }
+  .span2 { grid-column: 1; }
+  .decl-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+<div class="notifs" id="notifs"></div>
+<div id="modal-root"></div>
+
+<script>
+// ==========================================
+// ESTADO GLOBAL
+// ==========================================
+const STATE = {
+  user: null,
+  userRole: 'admin',
+  userName: 'Contadora',
+  clientes: [],
+  declaraciones: [],
+  currentCliente: null,
+  currentTab: 'declaraciones',
+  fbReady: false,
+  configOk: false,
+};
+
+// ==========================================
+// HELPERS
+// ==========================================
+const $ = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = n => new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN',minimumFractionDigits:2}).format(n||0);
+const today = () => new Date().toISOString().split('T')[0];
+const todayDate = () => new Date();
+
+function notify(msg, type='ok') {
+  const d = document.createElement('div');
+  d.className = `notif ${type}`;
+  const icons = {ok:'✓', err:'✕', info:'ℹ'};
+  d.innerHTML = `<span>${icons[type]||'·'}</span> ${msg}`;
+  $('notifs').appendChild(d);
+  setTimeout(() => d.remove(), 3500);
+}
+
+function diasHasta(fechaStr) {
+  if (!fechaStr) return 999;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const fecha = new Date(fechaStr + 'T00:00:00');
+  return Math.ceil((fecha - hoy) / 86400000);
+}
+
+function regimeLabel(r) {
+  const map = { RG:'Régimen General', RMT:'MYPE Tributario', RS:'Régimen Especial', RUS:'RUS' };
+  return map[r] || r;
+}
+
+// ==========================================
+// FIREBASE OPERATIONS
+// ==========================================
+async function fbAdd(col, data) {
+  if (!STATE.fbReady || !STATE.configOk) return mockAdd(col, data);
+  try {
+    const docRef = await window.FB.addDoc(window.FB.collection(window.FB.db, col), { ...data, createdAt: new Date() });
+    return docRef.id;
+  } catch(e) { notify('Error Firebase: ' + e.message, 'err'); throw e; }
+}
+
+async function fbGet(col) {
+  if (!STATE.fbReady || !STATE.configOk) return [];
+  try {
+    const snap = await window.FB.getDocs(window.FB.collection(window.FB.db, col));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.error(e); return []; }
+}
+
+async function fbUpdate(col, id, data) {
+  if (!STATE.fbReady || !STATE.configOk) return;
+  await window.FB.updateDoc(window.FB.doc(window.FB.db, col, id), data);
+}
+
+async function fbDelete(col, id) {
+  if (!STATE.fbReady || !STATE.configOk) return;
+  await window.FB.deleteDoc(window.FB.doc(window.FB.db, col, id));
+}
+
+// Mock para demo sin Firebase configurado
+let mockId = 100;
+function mockAdd(col, data) {
+  const id = 'mock_' + (++mockId);
+  data.id = id;
+  if (col === 'clientes') STATE.clientes.unshift(data);
+  if (col === 'declaraciones') STATE.declaraciones.unshift(data);
+  return id;
+}
+
+// DATOS DEMO
+function loadDemoData() {
+  STATE.clientes = [
+    { id:'c1', razonSocial:'Tech Solutions SAC', ruc:'20123456789', regimen:'RG', email:'contacto@tech.com', telefono:'01-4445566', responsable:'María García', periodoInicio:'2024-01', activo:true },
+    { id:'c2', razonSocial:'Comercial Flores EIRL', ruc:'20987654321', regimen:'RMT', email:'flores@gmail.com', telefono:'999111222', responsable:'Juan Flores', periodoInicio:'2023-06', activo:true },
+    { id:'c3', razonSocial:'Servicios López SRL', ruc:'20456789123', regimen:'RS', email:'lopez@empresa.pe', telefono:'01-3334455', responsable:'Ana López', periodoInicio:'2024-03', activo:true },
+    { id:'c4', razonSocial:'Negocio Rápido - Pedro Quispe', ruc:'10345678901', regimen:'RUS', email:'pedro@gmail.com', telefono:'987654321', responsable:'Pedro Quispe', periodoInicio:'2023-01', activo:true },
+  ];
+  STATE.declaraciones = [
+    { id:'d1', clienteId:'c1', tipo:'PDT 621', periodo:'2026-02', vencimiento:'2026-03-17', estado:'presentada', montoIGV:2850, montoRenta:450, archivo:null, notas:'Presentado sin observaciones' },
+    { id:'d2', clienteId:'c1', tipo:'PDT 601', periodo:'2026-02', vencimiento:'2026-03-20', estado:'presentada', montoIGV:0, montoRenta:2340, archivo:null, notas:'Planilla 8 trabajadores' },
+    { id:'d3', clienteId:'c2', tipo:'PDT 621', periodo:'2026-02', vencimiento:'2026-03-17', estado:'pendiente', montoIGV:980, montoRenta:120, archivo:null, notas:'' },
+    { id:'d4', clienteId:'c3', tipo:'PDT 621', periodo:'2026-02', vencimiento:'2026-03-17', estado:'pendiente', montoIGV:340, montoRenta:0, archivo:null, notas:'' },
+    { id:'d5', clienteId:'c1', tipo:'PDT 621', periodo:'2026-03', vencimiento:'2026-04-15', estado:'pendiente', montoIGV:0, montoRenta:0, archivo:null, notas:'' },
+    { id:'d6', clienteId:'c2', tipo:'Renta Anual', periodo:'2025', vencimiento:'2026-03-31', estado:'en-proceso', montoIGV:0, montoRenta:4500, archivo:null, notas:'Pendiente revisar gastos' },
+    { id:'d7', clienteId:'c4', tipo:'Cuota RUS', periodo:'2026-02', vencimiento:'2026-03-10', estado:'vencida', montoIGV:0, montoRenta:20, archivo:null, notas:'VENCIDA - contactar cliente' },
+  ];
+}
+
+// ==========================================
+// AUTH
+// ==========================================
+function renderLogin() {
+  $('root').innerHTML = `
+  <div class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">⚖</div>
+        <div>
+          <div class="login-logo-text">ContaGestión PRO</div>
+          <div class="login-logo-sub">Sistema para Contadores · Perú</div>
+        </div>
+      </div>
+      <div class="login-title">Iniciar sesión</div>
+      <div class="login-sub">Accede a la gestión de tus clientes contables</div>
+      <div class="fg">
+        <label class="fl">Correo electrónico</label>
+        <input class="fi" id="login-email" type="email" placeholder="contadora@empresa.com" value="demo@contapyme.pe"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Contraseña</label>
+        <input class="fi" id="login-pass" type="password" placeholder="••••••••" value="demo123456" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()" id="login-btn">
+        Ingresar al sistema
+      </button>
+      <div class="login-demo">
+        <strong>Modo Demo activo</strong> — Los datos se guardan localmente.<br/>
+        Configura Firebase para almacenamiento en la nube.
+      </div>
+    </div>
+  </div>`;
+}
+
+function doLogin() {
+  const email = $('login-email')?.value;
+  const pass = $('login-pass')?.value;
+  if (!email || !pass) { notify('Ingresa email y contraseña', 'err'); return; }
+
+  // Demo mode - acepta cualquier credencial
+  if (!STATE.configOk) {
+    STATE.user = { email, uid: 'demo' };
+    STATE.userName = email.split('@')[0];
+    loadDemoData();
+    renderApp();
+    notify('Bienvenida al sistema ✓');
+    return;
+  }
+
+  // Firebase Auth
+  const btn = $('login-btn');
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+  window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass)
+    .then(() => { loadAllData(); })
+    .catch(e => { notify('Error: ' + e.message, 'err'); btn.disabled = false; btn.textContent = 'Ingresar al sistema'; });
+}
+
+function doLogout() {
+  if (STATE.configOk && window.FB) window.FB.signOut(window.FB.auth);
+  STATE.user = null; STATE.clientes = []; STATE.declaraciones = [];
+  renderLogin();
+}
+
+// ==========================================
+// LOAD DATA
+// ==========================================
+async function loadAllData() {
+  STATE.clientes = await fbGet('clientes');
+  STATE.declaraciones = await fbGet('declaraciones');
+  renderApp();
+}
+
+// ==========================================
+// APP SHELL
+// ==========================================
+let currentModule = 'dashboard';
+
+function renderApp() {
+  const pendientes = STATE.declaraciones.filter(d => d.estado === 'pendiente' || d.estado === 'en-proceso').length;
+  const urgentes = STATE.declaraciones.filter(d => diasHasta(d.vencimiento) <= 5 && d.estado !== 'presentada').length;
+
+  $('root').innerHTML = `
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="sb-logo">⚖</div>
+        <div>
+          <div class="sb-name">ContaGestión</div>
+          <div class="sb-sub">PRO v2.0</div>
+        </div>
+      </div>
+      <nav class="sb-nav">
+        <div class="nav-sec">PRINCIPAL</div>
+        <button class="nav-item ${currentModule==='dashboard'?'active':''}" onclick="navTo('dashboard',this)">
+          <span class="nav-ic">◈</span><span class="nav-lbl">Dashboard</span>
+        </button>
+        <button class="nav-item ${currentModule==='clientes'?'active':''}" onclick="navTo('clientes',this)">
+          <span class="nav-ic">👥</span><span class="nav-lbl">Clientes</span>
+          <span class="nav-badge">${STATE.clientes.length}</span>
+        </button>
+        <div class="nav-sec">TRIBUTARIO</div>
+        <button class="nav-item ${currentModule==='declaraciones'?'active':''}" onclick="navTo('declaraciones',this)">
+          <span class="nav-ic">📋</span><span class="nav-lbl">Declaraciones</span>
+          ${pendientes>0?`<span class="nav-badge">${pendientes}</span>`:''}
+        </button>
+        <button class="nav-item ${currentModule==='calendario'?'active':''}" onclick="navTo('calendario',this)">
+          <span class="nav-ic">📅</span><span class="nav-lbl">Calendario</span>
+          ${urgentes>0?`<span class="nav-badge">${urgentes}</span>`:''}
+        </button>
+        <button class="nav-item ${currentModule==='documentos'?'active':''}" onclick="navTo('documentos',this)">
+          <span class="nav-ic">📁</span><span class="nav-lbl">Documentos</span>
+        </button>
+      </nav>
+      <div class="sb-footer">
+        <div class="sb-user">
+          <div class="sb-avatar">${STATE.userName.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="sb-uname">${esc(STATE.userName)}</div>
+            <div class="sb-urole">Contadora Principal</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">⎋ Cerrar sesión</button>
+      </div>
+    </aside>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title">ContaGestión PRO</div>
+          <span style="color:var(--brd2)">›</span>
+          <div class="topbar-breadcrumb" id="breadcrumb">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          ${!STATE.configOk?'<span style="font-size:11px;background:#fff8e1;border:1px solid #ffc107;padding:4px 10px;border-radius:20px;color:#856404;font-weight:600">⚡ Modo Demo</span>':''}
+          <div class="user-chip"><span class="user-dot"></span>${esc(STATE.userName)}</div>
+          <button class="btn btn-s btn-p" onclick="openConfigFirebase()">⚙ Firebase</button>
+        </div>
+      </div>
+      <main class="content" id="main-content"></main>
+    </div>
+  </div>`;
+  renderModule(currentModule);
+}
+
+function navTo(mod, btn) {
+  currentModule = mod;
+  STATE.currentCliente = null;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderModule(mod);
+}
+
+function renderModule(mod) {
+  const bc = { dashboard:'Dashboard', clientes:'Clientes', declaraciones:'Declaraciones SUNAT', calendario:'Calendario Tributario', documentos:'Documentos' };
+  const el = $('breadcrumb');
+  if(el) el.textContent = bc[mod] || mod;
+  const renders = { dashboard: renderDashboard, clientes: renderClientes, declaraciones: renderDeclaraciones, calendario: renderCalendario, documentos: renderDocumentos };
+  const mc = $('main-content');
+  if(mc) mc.innerHTML = `<div class="module">${(renders[mod]||renderDashboard)()}</div>`;
+}
+
+// ==========================================
+// DASHBOARD
+// ==========================================
+function renderDashboard() {
+  const total = STATE.clientes.length;
+  const activos = STATE.clientes.filter(c=>c.activo).length;
+  const pendientes = STATE.declaraciones.filter(d=>d.estado==='pendiente'||d.estado==='en-proceso');
+  const presentadas = STATE.declaraciones.filter(d=>d.estado==='presentada').length;
+  const vencidas = STATE.declaraciones.filter(d=>d.estado==='vencida').length;
+  const urgentes = STATE.declaraciones.filter(d=>diasHasta(d.vencimiento)<=7&&d.estado!=='presentada'&&d.estado!=='vencida');
+
+  const regimenCount = ['RG','RMT','RS','RUS'].map(r=>({r, n:STATE.clientes.filter(c=>c.regimen===r).length}));
+
+  const urgentesHtml = urgentes.slice(0,5).map(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:'Cliente'};
+    const dias = diasHasta(d.vencimiento);
+    return `<div class="cal-item ${dias<=3?'urgente':'proximo'}" style="margin-bottom:0">
+      <div class="cal-header">
+        <div><div class="cal-titulo">${esc(d.tipo)} · ${d.periodo}</div><div class="cal-cliente">${esc(c.razonSocial)}</div></div>
+        <div><div class="cal-fecha ${dias<=3?'urgente':'proximo'}">${d.vencimiento}</div><div class="cal-dias">${dias<=0?'¡VENCIDO!':dias+' días'}</div></div>
+      </div>
+      <span class="badge ${d.estado==='en-proceso'?'bi':'bw'}">${d.estado}</span>
+    </div>`;
+  }).join('');
+
+  const recentDecls = STATE.declaraciones.slice(0,5).map(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:'?'};
+    const bmap = {presentada:'bs',pendiente:'bw','en-proceso':'bi',vencida:'bd'};
+    return `<tr>
+      <td style="font-weight:600">${esc(d.tipo)}</td>
+      <td style="font-size:12px;color:var(--txt2)">${esc(c.razonSocial)}</td>
+      <td><span style="font-family:var(--fm);font-size:12px">${d.periodo}</span></td>
+      <td><span class="badge ${bmap[d.estado]||'bm'}">${d.estado}</span></td>
+      <td style="font-size:12px;color:var(--txt2)">${d.vencimiento}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="ph"><h1>Dashboard</h1><p>Resumen general · ${new Date().toLocaleDateString('es-PE',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
+
+  <div class="sg">
+    <div class="sc" style="--ac:#1a3a5c"><div class="sl">CLIENTES ACTIVOS</div><div class="sv">${activos}</div><div class="sd">de ${total} registrados</div></div>
+    <div class="sc" style="--ac:#856404"><div class="sl">DECLARACIONES PENDIENTES</div><div class="sv" style="color:#856404">${pendientes.length}</div><div class="sd">requieren acción</div></div>
+    <div class="sc" style="--ac:#2d6a4f"><div class="sl">PRESENTADAS</div><div class="sv" style="color:#2d6a4f">${presentadas}</div><div class="sd">este mes</div></div>
+    <div class="sc" style="--ac:#c0392b"><div class="sl">VENCIDAS</div><div class="sv" style="color:#c0392b">${vencidas}</div><div class="sd">requieren atención urgente</div></div>
+  </div>
+
+  <div class="g2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="ch"><span class="ct">⚠ Vencimientos Próximos</span><button class="btn btn-s btn-g" onclick="navTo('calendario')">Ver todos</button></div>
+      ${urgentes.length ? `<div style="display:flex;flex-direction:column;gap:8px">${urgentesHtml}</div>` : '<div class="empty"><div class="ei">✅</div><p>Sin vencimientos urgentes</p></div>'}
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Clientes por Régimen</span></div>
+      ${regimenCount.filter(r=>r.n>0).map(({r,n})=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--brd)">
+        <span class="badge reg-${r} regbg-${r}" style="min-width:60px;justify-content:center">${r}</span>
+        <span style="flex:1;font-size:13px">${regimeLabel(r)}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="width:${total?Math.round(n/total*100):0}%;height:100%;background:var(--acc);border-radius:3px"></div>
+          </div>
+          <span style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--acc)">${n}</span>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Últimas Declaraciones</span><button class="btn btn-s btn-g" onclick="navTo('declaraciones')">Ver todas</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>Tipo</th><th>Cliente</th><th>Periodo</th><th>Estado</th><th>Vencimiento</th></tr></thead>
+      <tbody>${recentDecls||'<tr><td colspan="5"><div class="empty"><div class="ei">📋</div><p>Sin declaraciones aún</p></div></td></tr>'}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ==========================================
+// CLIENTES
+// ==========================================
+let cSearch = '';
+function renderClientes() {
+  const list = STATE.clientes.filter(c => c.razonSocial?.toLowerCase().includes(cSearch.toLowerCase()) || c.ruc?.includes(cSearch));
+  const regColors = { RG:'#1a3a5c', RMT:'#2d6a4f', RS:'#7b4fa6', RUS:'#c8963e' };
+
+  const cards = list.map(c => {
+    const decls = STATE.declaraciones.filter(d=>d.clienteId===c.id);
+    const pendientes = decls.filter(d=>d.estado==='pendiente'||d.estado==='en-proceso').length;
+    const vencidas = decls.filter(d=>d.estado==='vencida').length;
+    const alertClass = vencidas>0?'danger':pendientes>0?'warn':'ok';
+    const alertText = vencidas>0?`⚠ ${vencidas} vencida(s)`:pendientes>0?`⏳ ${pendientes} pendiente(s)`:'✓ Al día';
+
+    return `<div class="cliente-card" style="--regime-color:${regColors[c.regimen]||'#1a3a5c'}" onclick="verCliente('${c.id}')">
+      <div class="cc-header">
+        <div>
+          <div class="cc-name">${esc(c.razonSocial)}</div>
+          <div class="cc-ruc">RUC: ${esc(c.ruc)}</div>
+        </div>
+        <span class="badge reg-${c.regimen} regbg-${c.regimen}">${c.regimen}</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-row"><span class="cc-icon">👤</span><span>${esc(c.responsable||'—')}</span></div>
+        <div class="cc-row"><span class="cc-icon">📧</span><span>${esc(c.email||'—')}</span></div>
+        <div class="cc-row"><span class="cc-icon">📞</span><span>${esc(c.telefono||'—')}</span></div>
+      </div>
+      <div class="cc-footer">
+        <span class="cc-decls">${decls.length} declaraciones</span>
+        <span class="cc-alert ${alertClass}">${alertText}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ph"><div class="ph-row">
+    <div><h1>Clientes</h1><p>${STATE.clientes.length} clientes registrados</p></div>
+    <button class="btn btn-p" onclick="openClienteModal()">+ Nuevo Cliente</button>
+  </div></div>
+
+  <div class="tb">
+    <div class="si"><span class="sic">⌕</span><input class="sin" placeholder="Buscar por nombre o RUC..." value="${esc(cSearch)}" oninput="setCSearch(this.value)"/></div>
+    ${['RG','RMT','RS','RUS'].map(r=>`<button class="btn btn-s btn-g" onclick="setCSearch('${r}')" style="font-size:11px">${r}</button>`).join('')}
+    <button class="btn btn-s btn-g" onclick="setCSearch('')">Todos</button>
+  </div>
+
+  ${list.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">${cards}</div>` : '<div class="empty"><div class="ei">👥</div><p>No hay clientes registrados</p></div>'}`;
+}
+
+function setCSearch(v) { cSearch=v; renderModule('clientes'); }
+
+function openClienteModal(data=null) {
+  const isEdit = !!data;
+  const d = data || { razonSocial:'', ruc:'', regimen:'RG', email:'', telefono:'', responsable:'', direccion:'', periodoInicio:today().slice(0,7), notas:'' };
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="mh"><span class="mt">${isEdit?'Editar':'Nuevo'} Cliente</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="fg span2"><label class="fl">Razón Social / Nombre *</label><input class="fi" id="c-rs" value="${esc(d.razonSocial)}" placeholder="Empresa SAC / Nombre completo"/></div>
+        <div class="fg"><label class="fl">RUC / DNI *</label><input class="fi" id="c-ruc" value="${esc(d.ruc)}" placeholder="20123456789" maxlength="11"/></div>
+        <div class="fg"><label class="fl">Régimen Tributario *</label>
+          <select class="fsel" id="c-reg">
+            ${['RG','RMT','RS','RUS'].map(r=>`<option value="${r}"${d.regimen===r?' selected':''}>${r} — ${regimeLabel(r)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Responsable / Contacto</label><input class="fi" id="c-resp" value="${esc(d.responsable)}" placeholder="Nombre del contacto"/></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="c-email" type="email" value="${esc(d.email)}" placeholder="empresa@correo.com"/></div>
+        <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="c-tel" value="${esc(d.telefono)}" placeholder="01-234567 / 999888777"/></div>
+        <div class="fg"><label class="fl">Inicio de servicios</label><input class="fi" id="c-inicio" type="month" value="${d.periodoInicio||''}"/></div>
+        <div class="fg span2"><label class="fl">Dirección</label><input class="fi" id="c-dir" value="${esc(d.direccion||'')}" placeholder="Av. Lima 123, San Isidro"/></div>
+        <div class="fg" style="grid-column:span 3"><label class="fl">Notas internas</label><textarea class="fta" id="c-notas" placeholder="Información relevante del cliente...">${esc(d.notas||'')}</textarea></div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveCliente(${isEdit?`'${data.id}'`:'null'})">${isEdit?'Guardar cambios':'Registrar cliente'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function saveCliente(editId) {
+  const rs = $('c-rs')?.value.trim();
+  const ruc = $('c-ruc')?.value.trim();
+  if(!rs||!ruc) { notify('Razón social y RUC son requeridos','err'); return; }
+
+  const obj = { razonSocial:rs, ruc, regimen:$('c-reg').value, responsable:$('c-resp').value, email:$('c-email').value, telefono:$('c-tel').value, periodoInicio:$('c-inicio').value, direccion:$('c-dir').value, notas:$('c-notas').value, activo:true };
+
+  if (editId) {
+    await fbUpdate('clientes', editId, obj);
+    const idx = STATE.clientes.findIndex(c=>c.id===editId);
+    if(idx>=0) STATE.clientes[idx] = {...STATE.clientes[idx], ...obj};
+    notify('Cliente actualizado ✓');
+  } else {
+    const id = await fbAdd('clientes', obj);
+    if(!STATE.configOk) { /* ya fue agregado en mockAdd */ }
+    else STATE.clientes.unshift({id, ...obj});
+    notify('Cliente registrado ✓');
+  }
+  closeModal();
+  renderModule('clientes');
+  renderApp();
+}
+
+async function eliminarCliente(id) {
+  if(!confirm('¿Eliminar este cliente y todas sus declaraciones?')) return;
+  await fbDelete('clientes', id);
+  STATE.clientes = STATE.clientes.filter(c=>c.id!==id);
+  STATE.declaraciones = STATE.declaraciones.filter(d=>d.clienteId!==id);
+  STATE.currentCliente = null;
+  notify('Cliente eliminado');
+  renderModule('clientes');
+  renderApp();
+}
+
+// ==========================================
+// DETALLE CLIENTE
+// ==========================================
+function verCliente(id) {
+  STATE.currentCliente = id;
+  STATE.currentTab = 'declaraciones';
+  renderDetalleCliente();
+}
+
+function renderDetalleCliente() {
+  const c = STATE.clientes.find(x=>x.id===STATE.currentCliente);
+  if(!c) return renderModule('clientes');
+  const decls = STATE.declaraciones.filter(d=>d.clienteId===c.id);
+  const regColors = { RG:'#1a3a5c', RMT:'#2d6a4f', RS:'#7b4fa6', RUS:'#c8963e' };
+
+  const tabContent = {
+    declaraciones: () => renderDeclsCliente(c, decls),
+    documentos: () => renderDocsCliente(c, decls),
+    info: () => renderInfoCliente(c),
+  };
+
+  const mc = $('main-content');
+  if(!mc) return;
+  mc.innerHTML = `<div class="module">
+    <div style="margin-bottom:20px">
+      <button class="btn btn-g btn-s" onclick="navTo('clientes')">← Volver a Clientes</button>
+    </div>
+
+    <div class="detail-header">
+      <div class="dh-left">
+        <div class="dh-avatar">${c.razonSocial.charAt(0)}</div>
+        <div>
+          <div class="dh-name">${esc(c.razonSocial)}</div>
+          <div class="dh-ruc">RUC: ${esc(c.ruc)} · Desde ${c.periodoInicio||'—'}</div>
+          <div class="dh-badges">
+            <span class="badge" style="background:rgba(255,255,255,.2);color:white">${regimeLabel(c.regimen)}</span>
+            <span class="badge" style="background:rgba(255,255,255,.15);color:white">${decls.length} declaraciones</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3)" onclick="openClienteModal(STATE.clientes.find(x=>x.id==='${c.id}'))">✎ Editar</button>
+        <button class="btn" style="background:rgba(255,100,100,.25);color:#ffaaaa;border:1px solid rgba(255,100,100,.3)" onclick="eliminarCliente('${c.id}')">✕ Eliminar</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab ${STATE.currentTab==='declaraciones'?'active':''}" onclick="setClienteTab('declaraciones')">📋 Declaraciones</button>
+      <button class="tab ${STATE.currentTab==='documentos'?'active':''}" onclick="setClienteTab('documentos')">📁 Documentos PDF</button>
+      <button class="tab ${STATE.currentTab==='info'?'active':''}" onclick="setClienteTab('info')">ℹ Información</button>
+    </div>
+
+    <div id="tab-content">${(tabContent[STATE.currentTab]||tabContent.declaraciones)()}</div>
+  </div>`;
+}
+
+function setClienteTab(tab) { STATE.currentTab = tab; renderDetalleCliente(); }
+
+function renderDeclsCliente(c, decls) {
+  const bmap = { presentada:'bs', pendiente:'bw', 'en-proceso':'bi', vencida:'bd' };
+  const rows = decls.map(d => `
+  <div class="decl-row">
+    <div><div class="decl-tipo">${esc(d.tipo)}</div><div class="decl-periodo">${d.periodo}</div></div>
+    <div><span class="badge ${bmap[d.estado]||'bm'}">${d.estado}</span></div>
+    <div style="font-size:12px;color:var(--txt2)">${d.vencimiento}</div>
+    <div style="font-family:var(--fm);font-size:12px">${d.montoIGV?fmt(d.montoIGV):'—'}</div>
+    <div style="font-family:var(--fm);font-size:12px">${d.montoRenta?fmt(d.montoRenta):'—'}</div>
+    <div style="display:flex;gap:5px">
+      <button class="btn btn-s btn-g" onclick="editDeclaracion('${d.id}')">✎</button>
+      <button class="btn btn-s btn-d" onclick="eliminarDeclaracion('${d.id}')">✕</button>
+    </div>
+  </div>`).join('');
+
+  return `
+  <div class="ch" style="margin-bottom:16px">
+    <span style="font-weight:700;font-size:14px">Declaraciones de ${esc(c.razonSocial)}</span>
+    <button class="btn btn-p btn-s" onclick="openDeclModal('${c.id}')">+ Nueva Declaración</button>
+  </div>
+  ${decls.length?`
+  <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0;margin-bottom:8px;padding:6px 18px;font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px">
+    <span>Tipo / Período</span><span>Estado</span><span>Vencimiento</span><span>IGV</span><span>Renta</span><span>Acciones</span>
+  </div>
+  ${rows}` : `<div class="empty"><div class="ei">📋</div><p>Sin declaraciones registradas</p><button class="btn btn-p" style="margin-top:12px" onclick="openDeclModal('${c.id}')">+ Agregar primera declaración</button></div>`}`;
+}
+
+function renderDocsCliente(c, decls) {
+  const declsConArchivo = decls.filter(d=>d.archivo);
+  return `
+  <div class="ch" style="margin-bottom:16px">
+    <span style="font-weight:700;font-size:14px">Documentos PDF de ${esc(c.razonSocial)}</span>
+    <button class="btn btn-p btn-s" onclick="openDeclModal('${c.id}',null,true)">+ Subir Documento</button>
+  </div>
+  <div class="pdf-zone" onclick="document.getElementById('file-global').click()" id="drop-zone"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event,'${c.id}')">
+    <input type="file" id="file-global" accept=".pdf,.xlsx,.xls,.doc,.docx" style="display:none" onchange="handleFileUpload(this,'${c.id}')"/>
+    <div class="pz-icon">📄</div>
+    <p><strong>Arrastra archivos aquí</strong> o haz clic para seleccionar</p>
+    <p style="font-size:11px;margin-top:4px;color:var(--txt3)">PDF, Excel, Word · Reportes SUNAT, declaraciones, constancias</p>
+  </div>
+  ${declsConArchivo.length ? `
+  <div class="pdf-list" style="margin-top:16px">
+    ${declsConArchivo.map(d=>`
+    <div class="pdf-item">
+      <span class="pdf-item-icon">📄</span>
+      <div style="flex:1">
+        <div class="pdf-item-name">${esc(d.tipo)} · ${d.periodo}</div>
+        <div style="font-size:11px;color:var(--txt3)">${d.archivo?.nombre||'documento.pdf'} · ${d.vencimiento}</div>
+      </div>
+      <span class="badge ${d.estado==='presentada'?'bs':'bw'}">${d.estado}</span>
+      ${d.archivo?.url?`<a href="${d.archivo.url}" target="_blank" class="btn btn-s btn-g" style="text-decoration:none">⬇ Ver</a>`:''}
+    </div>`).join('')}
+  </div>` : '<p style="color:var(--txt3);font-size:13px;margin-top:16px;text-align:center">No hay documentos subidos aún</p>'}`;
+}
+
+function renderInfoCliente(c) {
+  const fields = [
+    ['Razón Social', c.razonSocial], ['RUC/DNI', c.ruc], ['Régimen', regimeLabel(c.regimen)],
+    ['Responsable', c.responsable], ['Email', c.email], ['Teléfono', c.telefono],
+    ['Dirección', c.direccion], ['Inicio servicios', c.periodoInicio],
+  ];
+  return `
+  <div class="card">
+    <div class="ch"><span class="ct">Información del Cliente</span><button class="btn btn-s btn-g" onclick="openClienteModal(STATE.clientes.find(x=>x.id==='${c.id}'))">✎ Editar</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      ${fields.map(([l,v])=>`<div><div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${l}</div><div style="font-size:14px;font-weight:500">${esc(v||'—')}</div></div>`).join('')}
+    </div>
+    ${c.notas?`<div style="margin-top:16px;padding:14px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin-bottom:6px">Notas internas</div><div style="font-size:13px">${esc(c.notas)}</div></div>`:''}
+  </div>`;
+}
+
+// ==========================================
+// DECLARACIONES
+// ==========================================
+let dSearch='', dEstado='todos', dTipo='todos';
+function renderDeclaraciones() {
+  let list = STATE.declaraciones.filter(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:''};
+    const ms = c.razonSocial.toLowerCase().includes(dSearch.toLowerCase())||d.tipo.toLowerCase().includes(dSearch.toLowerCase());
+    const me = dEstado==='todos'||d.estado===dEstado;
+    const mt = dTipo==='todos'||d.tipo===dTipo;
+    return ms&&me&&mt;
+  });
+
+  const tipos = [...new Set(STATE.declaraciones.map(d=>d.tipo))];
+  const bmap = { presentada:'bs', pendiente:'bw', 'en-proceso':'bi', vencida:'bd' };
+
+  const rows = list.map(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:'?'};
+    return `<tr>
+      <td><div style="font-weight:700;font-size:13px">${esc(d.tipo)}</div><div style="font-size:11px;font-family:var(--fm);color:var(--txt2)">${d.periodo}</div></td>
+      <td><div style="font-weight:500;cursor:pointer;color:var(--acc)" onclick="verCliente('${c.id}')">${esc(c.razonSocial)}</div><div style="font-size:11px;color:var(--txt3);font-family:var(--fm)">${c.ruc}</div></td>
+      <td><span class="badge ${bmap[d.estado]||'bm'}">${d.estado}</span></td>
+      <td style="font-size:12px;color:${diasHasta(d.vencimiento)<=5&&d.estado!=='presentada'?'var(--acc4)':'var(--txt2)'};font-weight:${diasHasta(d.vencimiento)<=5?700:400}">${d.vencimiento}</td>
+      <td style="font-family:var(--fm);font-size:12px">${d.montoIGV?fmt(d.montoIGV):'—'}</td>
+      <td style="font-family:var(--fm);font-size:12px">${d.montoRenta?fmt(d.montoRenta):'—'}</td>
+      <td style="font-size:12px;color:var(--txt2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.notas||'—')}</td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn btn-s btn-g" onclick="editDeclaracion('${d.id}')">✎</button>
+        <button class="btn btn-s btn-d" onclick="eliminarDeclaracion('${d.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="ph"><div class="ph-row">
+    <div><h1>Declaraciones SUNAT</h1><p>${list.length} registros · Todas las declaraciones</p></div>
+    <button class="btn btn-p" onclick="openDeclModal(null)">+ Nueva Declaración</button>
+  </div></div>
+
+  <div class="sg" style="grid-template-columns:repeat(5,1fr)">
+    ${[['Todas',STATE.declaraciones.length,'#1a3a5c'],['Pendientes',STATE.declaraciones.filter(d=>d.estado==='pendiente').length,'#856404'],['En proceso',STATE.declaraciones.filter(d=>d.estado==='en-proceso').length,'#0c5460'],['Presentadas',STATE.declaraciones.filter(d=>d.estado==='presentada').length,'#155724'],['Vencidas',STATE.declaraciones.filter(d=>d.estado==='vencida').length,'#721c24']]
+      .map(([l,n,col])=>`<div class="sc" style="--ac:${col};cursor:pointer" onclick="setDEstado('${l==='Todas'?'todos':l.toLowerCase().replace(' ','-')}')"><div class="sl">${l.toUpperCase()}</div><div class="sv" style="color:${col};font-size:24px">${n}</div></div>`).join('')}
+  </div>
+
+  <div class="card">
+    <div class="tb">
+      <div class="si"><span class="sic">⌕</span><input class="sin" placeholder="Buscar cliente o tipo..." value="${esc(dSearch)}" oninput="setDSearch(this.value)"/></div>
+      <select class="fsel" style="width:auto;padding:8px 12px;font-size:12px" onchange="setDTipo(this.value)">
+        <option value="todos">Todos los tipos</option>
+        ${tipos.map(t=>`<option value="${t}" ${dTipo===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      ${['todos','pendiente','en-proceso','presentada','vencida'].map(e=>`<button class="btn btn-s ${dEstado===e?'btn-p':'btn-g'}" onclick="setDEstado('${e}')">${e==='todos'?'Todos':e}</button>`).join('')}
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Tipo / Período</th><th>Cliente</th><th>Estado</th><th>Vencimiento</th><th>IGV</th><th>Renta/Cuota</th><th>Notas</th><th>Acciones</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="8"><div class="empty"><div class="ei">📋</div><p>No hay declaraciones</p></div></td></tr>`}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function setDSearch(v){dSearch=v;renderModule('declaraciones')}
+function setDEstado(v){dEstado=v;renderModule('declaraciones')}
+function setDTipo(v){dTipo=v;renderModule('declaraciones')}
+
+function openDeclModal(clienteId=null, data=null, soloDoc=false) {
+  const isEdit = !!data;
+  const d = data || { clienteId:clienteId||'', tipo:'PDT 621', periodo:today().slice(0,7), vencimiento:'', estado:'pendiente', montoIGV:'', montoRenta:'', notas:'' };
+  const TIPOS = ['PDT 621','PDT 601','PDT 617','Renta Anual','Cuota RUS','DAOT','Libros Electrónicos','Otros'];
+
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="mh"><span class="mt">${isEdit?'Editar':'Nueva'} Declaración</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <div class="fgrid">
+        <div class="fg span2">
+          <label class="fl">Cliente *</label>
+          <select class="fsel" id="d-cli">
+            <option value="">-- Seleccionar cliente --</option>
+            ${STATE.clientes.map(c=>`<option value="${c.id}" ${(d.clienteId===c.id||clienteId===c.id)?'selected':''}>${c.razonSocial} (${c.ruc})</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Tipo de Declaración *</label>
+          <select class="fsel" id="d-tipo">
+            ${TIPOS.map(t=>`<option value="${t}" ${d.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Período</label>
+          <input class="fi" id="d-periodo" type="month" value="${d.periodo}"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Fecha de vencimiento</label>
+          <input class="fi" id="d-venc" type="date" value="${d.vencimiento}"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Estado</label>
+          <select class="fsel" id="d-est">
+            ${['pendiente','en-proceso','presentada','vencida'].map(e=>`<option value="${e}" ${d.estado===e?'selected':''}>${e}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Monto IGV (S/)</label>
+          <input class="fi" id="d-igv" type="number" placeholder="0.00" value="${d.montoIGV||''}"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Monto Renta / Cuota (S/)</label>
+          <input class="fi" id="d-renta" type="number" placeholder="0.00" value="${d.montoRenta||''}"/>
+        </div>
+        <div class="fg span2">
+          <label class="fl">Notas / Observaciones</label>
+          <textarea class="fta" id="d-notas" placeholder="Observaciones, número de orden, constancias...">${esc(d.notas||'')}</textarea>
+        </div>
+        <div class="fg span2">
+          <label class="fl">Adjuntar documento PDF / Reporte SUNAT</label>
+          <div class="pdf-zone" onclick="document.getElementById('d-file').click()">
+            <input type="file" id="d-file" accept=".pdf,.xlsx,.xls" style="display:none"/>
+            <div class="pz-icon">📄</div>
+            <p><strong>Subir reporte SUNAT</strong> — PDF, Excel</p>
+            <p id="d-file-name" style="font-size:12px;color:var(--acc);margin-top:6px;font-weight:600"></p>
+          </div>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveDeclaracion(${isEdit?`'${data.id}'`:'null'})">${isEdit?'Guardar cambios':'Registrar declaración'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  // File name preview
+  setTimeout(()=>{
+    const fi = $('d-file');
+    if(fi) fi.addEventListener('change', ()=>{ $('d-file-name').textContent = fi.files[0]?.name||''; });
+  },100);
+}
+
+function editDeclaracion(id) { openDeclModal(null, STATE.declaraciones.find(d=>d.id===id)); }
+
+async function saveDeclaracion(editId) {
+  const cli = $('d-cli')?.value;
+  if(!cli) { notify('Selecciona un cliente','err'); return; }
+
+  const fileInput = $('d-file');
+  let archivo = editId ? (STATE.declaraciones.find(d=>d.id===editId)?.archivo||null) : null;
+
+  // Upload file if selected
+  if(fileInput?.files?.length && STATE.configOk && STATE.fbReady) {
+    try {
+      const file = fileInput.files[0];
+      const storageRef = window.FB.ref(window.FB.storage, `declaraciones/${cli}/${Date.now()}_${file.name}`);
+      await window.FB.uploadBytes(storageRef, file);
+      const url = await window.FB.getDownloadURL(storageRef);
+      archivo = { nombre: file.name, url, size: file.size };
+      notify('Archivo subido a Firebase ✓');
+    } catch(e) { notify('Error subiendo archivo: '+e.message,'err'); }
+  } else if(fileInput?.files?.length) {
+    // Demo: guardar solo nombre
+    archivo = { nombre: fileInput.files[0].name, url: null, size: fileInput.files[0].size };
+    notify('Demo: archivo guardado localmente (configura Firebase para nube)','info');
+  }
+
+  const obj = {
+    clienteId: cli, tipo: $('d-tipo').value, periodo: $('d-periodo').value,
+    vencimiento: $('d-venc').value, estado: $('d-est').value,
+    montoIGV: parseFloat($('d-igv')?.value)||0,
+    montoRenta: parseFloat($('d-renta')?.value)||0,
+    notas: $('d-notas').value, archivo
+  };
+
+  if(editId) {
+    await fbUpdate('declaraciones', editId, obj);
+    const idx = STATE.declaraciones.findIndex(d=>d.id===editId);
+    if(idx>=0) STATE.declaraciones[idx] = {...STATE.declaraciones[idx],...obj};
+    notify('Declaración actualizada ✓');
+  } else {
+    const id = await fbAdd('declaraciones', obj);
+    if(!STATE.configOk) { /* ya fue agregado */ }
+    else STATE.declaraciones.unshift({id,...obj});
+    notify('Declaración registrada ✓');
+  }
+  closeModal();
+  if(STATE.currentCliente) renderDetalleCliente();
+  else renderModule('declaraciones');
+  renderApp();
+}
+
+async function eliminarDeclaracion(id) {
+  if(!confirm('¿Eliminar esta declaración?')) return;
+  await fbDelete('declaraciones', id);
+  STATE.declaraciones = STATE.declaraciones.filter(d=>d.id!==id);
+  notify('Declaración eliminada');
+  if(STATE.currentCliente) renderDetalleCliente();
+  else renderModule('declaraciones');
+  renderApp();
+}
+
+// ==========================================
+// CALENDARIO TRIBUTARIO
+// ==========================================
+function renderCalendario() {
+  const proximas = STATE.declaraciones
+    .filter(d=>d.estado!=='presentada')
+    .sort((a,b)=>new Date(a.vencimiento)-new Date(b.vencimiento));
+
+  const items = proximas.map(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:'?'};
+    const dias = diasHasta(d.vencimiento);
+    const cls = d.estado==='vencida'?'urgente':dias<=5?'urgente':dias<=15?'proximo':'ok';
+    const fcls = d.estado==='vencida'?'urgente':dias<=5?'urgente':dias<=15?'proximo':'ok';
+    const diasText = d.estado==='vencida'?'VENCIDA':dias===0?'HOY':dias===1?'Mañana':`${dias} días`;
+    return `<div class="cal-item ${cls}">
+      <div class="cal-header">
+        <div>
+          <div class="cal-titulo">${esc(d.tipo)}</div>
+          <div class="cal-cliente" style="cursor:pointer;color:var(--acc)" onclick="verCliente('${c.id}')">${esc(c.razonSocial)}</div>
+          <div style="font-size:11px;color:var(--txt3);font-family:var(--fm);margin-top:2px">${c.ruc} · ${d.periodo}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="cal-fecha ${fcls}">${d.vencimiento}</div>
+          <div class="cal-dias" style="color:${cls==='urgente'?'var(--acc4)':cls==='proximo'?'#856404':'var(--acc3)'};font-weight:700">${diasText}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <span class="badge ${d.estado==='vencida'?'bd':d.estado==='en-proceso'?'bi':'bw'}">${d.estado}</span>
+        <button class="btn btn-s btn-g" onclick="editDeclaracion('${d.id}')">Actualizar estado</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Agrupar por semana
+  const esta_semana = proximas.filter(d=>diasHasta(d.vencimiento)>=0&&diasHasta(d.vencimiento)<=7).length;
+  const este_mes = proximas.filter(d=>diasHasta(d.vencimiento)>=0&&diasHasta(d.vencimiento)<=30).length;
+  const vencidas_cnt = proximas.filter(d=>d.estado==='vencida').length;
+
+  return `
+  <div class="ph"><h1>Calendario Tributario</h1><p>Vencimientos ordenados por urgencia</p></div>
+
+  <div class="sg" style="grid-template-columns:repeat(4,1fr);margin-bottom:22px">
+    <div class="sc" style="--ac:#c0392b"><div class="sl">VENCIDAS</div><div class="sv" style="color:#c0392b">${vencidas_cnt}</div><div class="sd">atención inmediata</div></div>
+    <div class="sc" style="--ac:#856404"><div class="sl">ESTA SEMANA</div><div class="sv" style="color:#856404">${esta_semana}</div><div class="sd">próximos 7 días</div></div>
+    <div class="sc" style="--ac:#0c5460"><div class="sl">ESTE MES</div><div class="sv" style="color:#0c5460">${este_mes}</div><div class="sd">próximos 30 días</div></div>
+    <div class="sc" style="--ac:#2d6a4f"><div class="sl">TOTAL PENDIENTES</div><div class="sv" style="color:#2d6a4f">${proximas.length}</div><div class="sd">en gestión</div></div>
+  </div>
+
+  ${proximas.length ? `<div class="cal-grid">${items}</div>` : '<div class="empty"><div class="ei">🎉</div><p>¡Todo al día! Sin vencimientos pendientes</p></div>'}`;
+}
+
+// ==========================================
+// DOCUMENTOS GLOBAL
+// ==========================================
+function renderDocumentos() {
+  const declsConDoc = STATE.declaraciones.filter(d=>d.archivo);
+  const items = declsConDoc.map(d=>{
+    const c = STATE.clientes.find(x=>x.id===d.clienteId)||{razonSocial:'?'};
+    return `<div class="pdf-item">
+      <span class="pdf-item-icon">📄</span>
+      <div style="flex:1">
+        <div class="pdf-item-name">${esc(d.tipo)} · ${d.periodo}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px;cursor:pointer" onclick="verCliente('${c.id}')">${esc(c.razonSocial)} · ${c.ruc}</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:2px">${d.archivo?.nombre||'documento.pdf'}</div>
+      </div>
+      <span class="badge ${d.estado==='presentada'?'bs':'bw'}">${d.estado}</span>
+      ${d.archivo?.url?`<a href="${d.archivo.url}" target="_blank" class="btn btn-s btn-g" style="text-decoration:none">⬇ Descargar</a>`:'<span style="font-size:11px;color:var(--txt3)">Demo</span>'}
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="ph"><div class="ph-row">
+    <div><h1>Documentos</h1><p>${declsConDoc.length} documentos subidos</p></div>
+  </div></div>
+  <div class="card">
+    <div class="ch"><span class="ct">Todos los Documentos PDF</span></div>
+    ${declsConDoc.length ? `<div class="pdf-list">${items}</div>` : '<div class="empty"><div class="ei">📁</div><p>No hay documentos subidos aún.<br/>Súbelos desde cada declaración del cliente.</p></div>'}
+  </div>`;
+}
+
+// ==========================================
+// FILE HANDLING
+// ==========================================
+function handleFileUpload(input, clienteId) {
+  if(!input.files?.length) return;
+  notify(`Archivo "${input.files[0].name}" listo para adjuntar`, 'info');
+}
+
+function handleDrop(event, clienteId) {
+  event.preventDefault();
+  $('drop-zone')?.classList.remove('drag');
+  const file = event.dataTransfer.files[0];
+  if(file) notify(`Arrastraste: ${file.name}. Usa "+ Nueva Declaración" para adjuntarlo.`, 'info');
+}
+
+// ==========================================
+// FIREBASE CONFIG MODAL
+// ==========================================
+function openConfigFirebase() {
+  $('modal-root').innerHTML = `
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh"><span class="mt">⚙ Configurar Firebase</span><button class="btn btn-g btn-s" onclick="closeModal()">✕</button></div>
+      <p style="font-size:13px;color:var(--txt2);margin-bottom:16px">Pega aquí tu configuración de Firebase para activar el almacenamiento en la nube:</p>
+      <div class="fg">
+        <label class="fl">API Key</label>
+        <input class="fi" id="fb-apikey" placeholder="AIzaSy..."/>
+      </div>
+      <div class="fg">
+        <label class="fl">Auth Domain</label>
+        <input class="fi" id="fb-auth" placeholder="mi-proyecto.firebaseapp.com"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Project ID</label>
+        <input class="fi" id="fb-pid" placeholder="mi-proyecto-12345"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Storage Bucket</label>
+        <input class="fi" id="fb-bucket" placeholder="mi-proyecto.appspot.com"/>
+      </div>
+      <div class="fg">
+        <label class="fl">App ID</label>
+        <input class="fi" id="fb-appid" placeholder="1:123456:web:abcdef"/>
+      </div>
+      <div style="background:#e8f5ee;border-radius:var(--r2);padding:12px;font-size:12px;color:#155724;margin-top:4px">
+        💡 Ve a <strong>console.firebase.google.com</strong> → Tu proyecto → ⚙ Configuración → Tus apps → Web → Copiar config
+      </div>
+      <div class="mf">
+        <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="guardarConfigFirebase()">Guardar y conectar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function guardarConfigFirebase() {
+  const config = {
+    apiKey: $('fb-apikey')?.value.trim(),
+    authDomain: $('fb-auth')?.value.trim(),
+    projectId: $('fb-pid')?.value.trim(),
+    storageBucket: $('fb-bucket')?.value.trim(),
+    appId: $('fb-appid')?.value.trim(),
+  };
+  if(!config.apiKey || !config.projectId) { notify('Completa al menos API Key y Project ID','err'); return; }
+  localStorage.setItem('fb_config', JSON.stringify(config));
+  notify('Configuración guardada. Recarga la página para conectar Firebase.', 'info');
+  closeModal();
+}
+
+// ==========================================
+// UTILS
+// ==========================================
+function closeModal() { $('modal-root').innerHTML = ''; }
+
+// ==========================================
+// INIT
+// ==========================================
+document.addEventListener('fb-ready', () => {
+  STATE.fbReady = true;
+  const saved = localStorage.getItem('fb_config');
+  if(saved) {
+    try {
+      const cfg = JSON.parse(saved);
+      if(cfg.apiKey && cfg.apiKey !== 'TU_API_KEY') STATE.configOk = true;
+    } catch(e){}
+  }
+});
+
+// Mostrar login al iniciar
+window.addEventListener('load', () => {
+  renderLogin();
+});
+</script>
+</body>
+</html>
